@@ -1,0 +1,92 @@
+// ============================================
+// PRISMA SCHEMA - AsistenciaLegal
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator erd {
+  provider        = "prisma-erd-generator"
+  output          = "./erd/ERD.svg"
+  format          = "svg"
+  puppeteerConfig = "./puppeteer.config.json"
+}
+
+generator erd_mermaid {
+  provider = "prisma-erd-generator"
+  output   = "./erd/schema.md"
+  format   = "mermaid"
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+// Roles jerárquicos (ordenados de mayor a menor privilegio)
+enum Role {
+  SUPER_ADMIN   // Nivel 1: Máximo privilegio, owner de "Employees"
+  ADMIN         // Nivel 2: Crea cuentas e invita ACCOUNT_OWNER
+  EDITOR        // Nivel 3: Gestiona contenido normativo
+  ACCOUNT_OWNER // Nivel 4: Dueño de cuenta de cliente
+  MEMBER        // Nivel 5: Usuario final de cliente
+}
+
+enum UserStatus {
+  INVITED   // Usuario invitado, pendiente de aceptar
+  ACTIVE    // Usuario activo y operativo
+  SUSPENDED // Usuario suspendido temporalmente
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+model Account {
+  id        String   @id @default(cuid())
+  name      String   @unique // Nombre único globalmente
+  ownerId   String   @unique // Un owner solo puede tener 1 Account
+
+  // Relación 1:1 con owner (Restrict: no se puede eliminar owner con Account activo)
+  owner User @relation("AccountOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+
+  // Relación 1:N con users miembros
+  users User[] @relation("AccountUsers")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name]) // Performance en búsquedas por nombre
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         Role
+  status       UserStatus @default(ACTIVE)
+
+  // accountId es opcional SOLO para SUPER_ADMIN inicial
+  // Todos los demás usuarios DEBEN tener accountId
+  accountId String?
+  account   Account? @relation("AccountUsers", fields: [accountId], references: [id], onDelete: Cascade)
+
+  // Relación 1:1 inversa para ACCOUNT_OWNER
+  ownedAccount Account? @relation("AccountOwner")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId]) // Performance en queries por cuenta
+  @@index([role]) // Performance en queries por rol
+  @@index([email]) // Performance en login
+  @@unique([role], name: "unique_super_admin") // Garantizar único SUPER_ADMIN
+}
