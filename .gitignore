@@ -5,4 +5,4 @@ node_modules
 /generated/prisma
 
 # Sensitive initialization scripts
-/scripts/*
+/scripts/
