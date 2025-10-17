@@ -7,8 +7,8 @@ dotenv.config();
 const prisma = new PrismaClient();
 
 async function main() {
-  const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  const ADMIN_EMAIL = process.env['ADMIN_EMAIL'];
+  const ADMIN_PASSWORD = process.env['ADMIN_PASSWORD'];
 
   if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
     console.error('❌ ERROR: ADMIN_EMAIL and ADMIN_PASSWORD must be set in .env file');
@@ -107,7 +107,6 @@ async function main() {
     console.log('═══════════════════════════════════════\n');
 
     console.log('⚠️  IMPORTANT: Change the ADMIN_PASSWORD in production!\n');
-
   } catch (error) {
     console.error('\n❌ TRANSACTION FAILED: All changes have been rolled back.');
     console.error('   Error details:', error);

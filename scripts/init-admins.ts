@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient, User } from '../generated/prisma';
 import * as argon2 from 'argon2';
 import * as dotenv from 'dotenv';
 
@@ -12,8 +12,8 @@ async function main() {
   // ==========================================
   // STEP 0: Validar variables de entorno requeridas
   // ==========================================
-  const SECONDARY_ADMIN_PASSWORD = process.env.SECONDARY_ADMIN_PASSWORD;
-  const EDITOR_PASSWORD = process.env.EDITOR_PASSWORD;
+  const SECONDARY_ADMIN_PASSWORD = process.env['SECONDARY_ADMIN_PASSWORD'];
+  const EDITOR_PASSWORD = process.env['EDITOR_PASSWORD'];
 
   if (!SECONDARY_ADMIN_PASSWORD || !EDITOR_PASSWORD) {
     console.error('❌ ERROR: Missing required environment variables');
@@ -59,10 +59,7 @@ async function main() {
   // ==========================================
   const existingUsers = await prisma.user.findMany({
     where: {
-      OR: [
-        { email: 'admin@asistencialegal.com' },
-        { email: 'editor@asistencialegal.com' },
-      ],
+      OR: [{ email: 'admin@asistencialegal.com' }, { email: 'editor@asistencialegal.com' }],
     },
     select: { email: true, role: true },
   });
@@ -86,7 +83,7 @@ async function main() {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      const created: { admin?: any; editor?: any } = {};
+      const created: { admin?: User; editor?: User } = {};
 
       // 3.1: Crear ADMIN si no existe
       if (!existingAdminEmail) {
@@ -171,7 +168,6 @@ async function main() {
     if (result.admin || result.editor) {
       console.log('⚠️  IMPORTANT: Change default passwords in production!\n');
     }
-
   } catch (error) {
     console.error('\n❌ TRANSACTION FAILED: All changes have been rolled back.');
     console.error('   Error details:', error);

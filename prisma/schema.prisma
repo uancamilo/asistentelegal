@@ -3,11 +3,6 @@ generator client {
   output   = "../generated/prisma"
 }
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
 generator erd {
   provider        = "prisma-erd-generator"
   output          = "./erd/ERD.svg"
@@ -21,28 +16,19 @@ generator erd_mermaid {
   format   = "mermaid"
 }
 
-enum Role {
-  SUPER_ADMIN
-  ADMIN
-  EDITOR
-  ACCOUNT_OWNER
-  MEMBER
-}
-
-enum UserStatus {
-  INVITED
-  ACTIVE
-  SUSPENDED
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Account {
   id        String   @id @default(cuid())
   name      String   @unique
   ownerId   String   @unique
-  owner     User     @relation("AccountOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  members   User[]   @relation("AccountMembers")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  owner     User     @relation("AccountOwner", fields: [ownerId], references: [id])
+  members   User[]   @relation("AccountMembers")
 
   @@index([name])
 }
@@ -55,14 +41,27 @@ model User {
   lastName     String
   role         Role
   status       UserStatus @default(ACTIVE)
-  accountId    String?
-  account      Account?   @relation("AccountMembers", fields: [accountId], references: [id], onDelete: Cascade)
-  ownedAccount Account?   @relation("AccountOwner")
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+  accountId    String?
+  ownedAccount Account?   @relation("AccountOwner")
+  account      Account?   @relation("AccountMembers", fields: [accountId], references: [id], onDelete: Cascade)
 
-  @@unique([role], name: "unique_super_admin")
   @@index([accountId])
   @@index([role])
   @@index([email])
+}
+
+enum Role {
+  SUPER_ADMIN
+  ACCOUNT_OWNER
+  MEMBER
+  ADMIN
+  EDITOR
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
 }
