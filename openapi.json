@@ -41,7 +41,7 @@
       "post": {
         "operationId": "AuthController_refresh",
         "summary": "Renovar tokens",
-        "description": "Renueva los tokens usando un refresh token válido",
+        "description": "Renueva los tokens usando un refresh token válido enviado en el body",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -70,11 +70,6 @@
         },
         "tags": [
           "auth"
-        ],
-        "security": [
-          {
-            "JWT-auth": []
-          }
         ]
       }
     },
@@ -316,7 +311,7 @@
           "refreshToken": {
             "type": "string",
             "description": "JWT refresh token",
-            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWdyaDFmMTUwMDAxdzI3Z3h6a3FkYW1lIiwiZW1haWwiOiJhZG1pbkBlbWFpbC5jb20iLCJyb2xlIjoiU1VQRVJfQURNSU4iLCJpYXQiOjE3NjA4MTAwMDgsImV4cCI6MTc2MTQxNDgwOH0.OuQ5kDqdSIMPd5OgvGNSHdOf5c2T4CgHhkyfR5nD6SI"
           }
         },
         "required": [

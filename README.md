@@ -531,7 +531,7 @@ Content-Type: application/json
 # Respuesta:
 {
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWdyaDFmMTUwMDAxdzI3Z3h6a3FkYW1lIiwiZW1haWwiOiJhZG1pbkBlbWFpbC5jb20iLCJyb2xlIjoiU1VQRVJfQURNSU4iLCJpYXQiOjE3NjA4MTAwMDgsImV4cCI6MTc2MTQxNDgwOH0.OuQ5kDqdSIMPd5OgvGNSHdOf5c2T4CgHhkyfR5nD6SI",
   "user": {
     "id": "cuid123",
     "email": "admin@email.com",
@@ -548,16 +548,15 @@ Content-Type: application/json
 ```bash
 POST /api/auth/refresh
 Content-Type: application/json
-Authorization: Bearer <refresh-token>
 
 {
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWdyaDFmMTUwMDAxdzI3Z3h6a3FkYW1lIiwiZW1haWwiOiJhZG1pbkBlbWFpbC5jb20iLCJyb2xlIjoiU1VQRVJfQURNSU4iLCJpYXQiOjE3NjA4MTAwMDgsImV4cCI6MTc2MTQxNDgwOH0.OuQ5kDqdSIMPd5OgvGNSHdOf5c2T4CgHhkyfR5nD6SI"
 }
 
 # Respuesta:
 {
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWdyaDFmMTUwMDAxdzI3Z3h6a3FkYW1lIiwiZW1haWwiOiJhZG1pbkBlbWFpbC5jb20iLCJyb2xlIjoiU1VQRVJfQURNSU4iLCJpYXQiOjE3NjA4MTAwMDgsImV4cCI6MTc2MTQxNDgwOH0.OuQ5kDqdSIMPd5OgvGNSHdOf5c2T4CgHhkyfR5nD6SI"
 }
 ```
 

@@ -79,10 +79,6 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{refreshToken}}"
               }
             ],
             "body": {
@@ -94,7 +90,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["auth", "refresh"]
             },
-            "description": "Renueva los tokens usando un refresh token válido"
+            "description": "Renueva los tokens usando un refresh token válido enviado en el body"
           },
           "response": []
         }
