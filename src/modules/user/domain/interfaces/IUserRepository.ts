@@ -20,4 +20,4 @@ export interface IUserRepository {
   existsByEmail(email: Email): Promise<boolean>;
 }
 
-export const USER_REPOSITORY = Symbol('IUserRepository');
+export { USER_REPOSITORY } from '../constants/tokens';

@@ -38,8 +38,9 @@ SUSPENDED SUSPENDED
     }
   
     "Account" o|--|| "User" : "owner"
-    "Account" o{--}o "User" : ""
+    "Account" o{--}o "User" : "members"
     "User" o|--|| "Role" : "enum:role"
     "User" o|--|| "UserStatus" : "enum:status"
+    "User" o{--}o "Account" : "ownedAccount"
     "User" o|--|o "Account" : "account"
 ```

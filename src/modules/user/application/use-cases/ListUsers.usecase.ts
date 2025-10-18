@@ -1,5 +1,5 @@
 import { Injectable, Inject, ForbiddenException } from '@nestjs/common';
-import { USER_REPOSITORY } from '../../domain/interfaces/IUserRepository';
+import { USER_REPOSITORY } from '../../domain/constants/tokens';
 import { IUserRepository } from '../../domain/interfaces/IUserRepository';
 import { UserEntity, Role } from '../../domain/entities/User.entity';
 import { GetUserResponseDto, ListUsersResponseDto } from '../dtos/GetUser.dto';

@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '@prisma/client';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -27,7 +27,7 @@ async function main() {
     });
 
     console.log(`📊 Current SUPER_ADMINs in database: ${superAdmins.length}`);
-    superAdmins.forEach((admin) => {
+    superAdmins.forEach((admin: { id: string; email: string }) => {
       console.log(`   - ${admin.email} (ID: ${admin.id})`);
     });
 

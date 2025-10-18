@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
 import * as dotenv from 'dotenv';
 
@@ -46,7 +46,7 @@ async function main() {
   // ==========================================
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       // 2.1: Hashear contraseña
       const passwordHash = await argon2.hash(ADMIN_PASSWORD);
 

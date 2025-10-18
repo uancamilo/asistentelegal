@@ -1,5 +1,5 @@
 import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
-import { USER_REPOSITORY } from '../../../user/domain/interfaces/IUserRepository';
+import { USER_REPOSITORY } from '../../../user/domain/constants/tokens';
 import { IUserRepository } from '../../../user/domain/interfaces/IUserRepository';
 import { PasswordService } from '../../../user/infrastructure/services/Password.service';
 import { JwtService } from '../../infrastructure/services/Jwt.service';

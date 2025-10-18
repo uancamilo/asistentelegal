@@ -5,7 +5,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { USER_REPOSITORY } from '../../domain/interfaces/IUserRepository';
+import { USER_REPOSITORY } from '../../domain/constants/tokens';
 import { IUserRepository } from '../../domain/interfaces/IUserRepository';
 import { PasswordService } from '../../infrastructure/services/Password.service';
 import { Email } from '../../domain/value-objects/Email.vo';

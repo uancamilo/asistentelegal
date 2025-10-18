@@ -1,4 +1,4 @@
-import { PrismaClient, User } from '../generated/prisma';
+import { PrismaClient, User } from '@prisma/client';
 import * as argon2 from 'argon2';
 import * as dotenv from 'dotenv';
 
@@ -64,8 +64,8 @@ async function main() {
     select: { email: true, role: true },
   });
 
-  const existingAdminEmail = existingUsers.find((u) => u.email === 'admin@asistencialegal.com');
-  const existingEditorEmail = existingUsers.find((u) => u.email === 'editor@asistencialegal.com');
+  const existingAdminEmail = existingUsers.find((u: { email: string; role: string }) => u.email === 'admin@asistencialegal.com');
+  const existingEditorEmail = existingUsers.find((u: { email: string; role: string }) => u.email === 'editor@asistencialegal.com');
 
   if (existingAdminEmail && existingEditorEmail) {
     console.log('⚠️  Both ADMIN and EDITOR already exist:');
@@ -82,7 +82,7 @@ async function main() {
   console.log('🔄 Creating employees with atomic transaction...\n');
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       const created: { admin?: User; editor?: User } = {};
 
       // 3.1: Crear ADMIN si no existe
@@ -102,8 +102,8 @@ async function main() {
         });
 
         console.log('✅ ADMIN created (Step 1/2)');
-        console.log(`   ID: ${created.admin.id}`);
-        console.log(`   Email: ${created.admin.email}`);
+        console.log(`   ID: ${created.admin!.id}`);
+        console.log(`   Email: ${created.admin!.email}`);
         console.log(`   Account: ${employeesAccount.name}`);
         console.log(`   Password: [REDACTED - See .env:SECONDARY_ADMIN_PASSWORD]\n`);
       } else {
@@ -127,8 +127,8 @@ async function main() {
         });
 
         console.log('✅ EDITOR created (Step 2/2)');
-        console.log(`   ID: ${created.editor.id}`);
-        console.log(`   Email: ${created.editor.email}`);
+        console.log(`   ID: ${created.editor!.id}`);
+        console.log(`   Email: ${created.editor!.email}`);
         console.log(`   Account: ${employeesAccount.name}`);
         console.log(`   Password: [REDACTED - See .env:EDITOR_PASSWORD]\n`);
       } else {
@@ -159,7 +159,7 @@ async function main() {
     });
 
     console.log('   Users by role:');
-    usersByRole.forEach((group) => {
+    usersByRole.forEach((group: { role: string; _count: number }) => {
       console.log(`   - ${group.role}: ${group._count}`);
     });
 
