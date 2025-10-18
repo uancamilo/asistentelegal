@@ -210,38 +210,72 @@ classDiagram
 
 ### Diagrama de Estados - User Entity
 
+La máquina de estados del usuario define los tres estados posibles y las transiciones válidas entre ellos, diferenciando entre empleados y clientes según la lógica de negocio.
+
 ```mermaid
 stateDiagram-v2
-    [*] --> INVITED : Creación de usuario
-    [*] --> ACTIVE : Creación directa (empleados)
+    [*] --> INVITED : Crear cliente (ACCOUNT_OWNER/MEMBER)
+    [*] --> ACTIVE : Crear empleado (SUPER_ADMIN/ADMIN/EDITOR)
 
-    INVITED --> ACTIVE : Acepta invitación
+    INVITED --> ACTIVE : Cliente acepta invitación
     INVITED --> [*] : Usuario eliminado
 
-    ACTIVE --> SUSPENDED : Violación de políticas / Impago
+    ACTIVE --> SUSPENDED : suspend()
     ACTIVE --> [*] : Usuario eliminado
 
-    SUSPENDED --> ACTIVE : Resolución de problema
+    SUSPENDED --> ACTIVE : reactivate()
     SUSPENDED --> [*] : Usuario eliminado
 
     note right of INVITED
-        Usuario creado sin acceso
-        Para clientes pendientes de activación
+        Estado inicial para clientes
+        Sin acceso al sistema
+        Requiere activación manual
         Login rechazado
     end note
 
     note right of ACTIVE
-        Usuario con acceso completo
-        Puede usar funciones según su rol
-        Estado normal de operación
+        Acceso completo según rol
+        Estado operativo normal
+        Todas las funciones disponibles
+        Login permitido
     end note
 
     note right of SUSPENDED
         Acceso temporalmente bloqueado
         Login rechazado en middleware
         Datos conservados para reactivación
+
+        Razones de suspensión:
+        • Empleados: Violación de políticas internas
+        • Clientes: Violación de términos / Impago
     end note
 ```
+
+**Explicación de la Máquina de Estados:**
+
+1. **Estado INVITED** (Solo para clientes):
+   - Los clientes (ACCOUNT_OWNER, MEMBER) inician en estado INVITED
+   - No pueden acceder al sistema hasta que acepten la invitación
+   - Transición a ACTIVE al aceptar la invitación
+   - Pueden ser eliminados antes de activarse
+
+2. **Estado ACTIVE** (Empleados y clientes activos):
+   - Los empleados (SUPER_ADMIN, ADMIN, EDITOR) se crean directamente en ACTIVE
+   - Los clientes transicionan a ACTIVE al aceptar invitación
+   - Estado operativo normal con acceso completo según rol
+   - Pueden ser suspendidos por diferentes razones según tipo de usuario
+
+3. **Estado SUSPENDED** (Acceso temporalmente bloqueado):
+   - **Para empleados:** Solo por violación de políticas internas de la empresa
+   - **Para clientes:** Por violación de términos de servicio o impago de servicios
+   - El login es rechazado automáticamente por el middleware de autenticación
+   - Los datos se conservan para permitir reactivación posterior
+   - Pueden ser reactivados o eliminados definitivamente
+
+**Diferencias Clave por Tipo de Usuario:**
+
+- **Empleados:** Creación directa → ACTIVE, suspensión solo por políticas internas
+- **Clientes:** Creación → INVITED → ACTIVE, suspensión por términos/impago
 
 ### Diagrama de Secuencia - Login Flow
 
