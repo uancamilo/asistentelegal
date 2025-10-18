@@ -216,7 +216,7 @@ stateDiagram-v2
     [*] --> INVITED : Crear usuario (ADMIN/EDITOR/ACCOUNT_OWNER/MEMBER)
     [*] --> ACTIVE : Crear SUPER_ADMIN (script inicialización)
 
-    INVITED --> ACTIVE : activate() [PENDIENTE: endpoint faltante]
+    INVITED --> ACTIVE : activate() - PENDIENTE endpoint
     INVITED --> [*] : Usuario eliminado
 
     ACTIVE --> SUSPENDED : suspend()
@@ -231,7 +231,7 @@ stateDiagram-v2
         Sin acceso al sistema
         Login rechazado automáticamente
 
-        ⚠️ FUNCIONALIDAD FALTANTE:
+        FUNCIONALIDAD FALTANTE:
         No existe endpoint para activar usuarios
     end note
 
@@ -248,8 +248,8 @@ stateDiagram-v2
         Datos conservados para reactivación
 
         Razones de suspensión:
-        • Empleados: Violación de políticas internas
-        • Clientes: Violación de términos / Impago
+        Empleados: Violación de políticas internas
+        Clientes: Violación de términos / Impago
     end note
 ```
 
