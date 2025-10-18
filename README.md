@@ -127,6 +127,13 @@ asistencialegal/
 
 ### Diagrama de Clases - Entidades de Dominio
 
+<!--
+CORREGIDO: UserEntity contiene Email como Value Object mediante composición.
+Password.vo existe pero solo se usa durante la creación de usuarios para validación.
+UserEntity almacena passwordHash como string (no como VO Password).
+Fuente: src/modules/user/domain/entities/User.entity.ts (línea 20: email: Email, línea 21: private _passwordHash: string)
+-->
+
 ```mermaid
 classDiagram
     class UserEntity {
@@ -147,10 +154,12 @@ classDiagram
         +canViewContent(): boolean
         +canManageContent(): boolean
         +canViewAccountMembers(accountId: string): boolean
-        +canViewUser(targetUser: UserEntity): boolean
-        +canListAllUsers(): boolean
-        +canListClientAccounts(): boolean
-        +canViewAccount(account: AccountEntity): boolean
+        +canEditUser(targetUser: UserEntity): boolean
+        +canAccessAccount(accountId: string): boolean
+        +suspend(): void
+        +activate(): void
+        +updateProfile(firstName: string, lastName: string): void
+        +updatePasswordHash(newPasswordHash: string): void
     }
 
     class AccountEntity {
@@ -173,16 +182,6 @@ classDiagram
         +equals(other: Email): boolean
         +toString(): string
         -isValid(email: string): boolean
-    }
-
-    class Password {
-        <<Value Object>>
-        -value: string
-
-        +create(password: string): Password
-        +fromHash(hashedPassword: string): Password
-        +getValue(): string
-        -isValid(password: string): boolean
     }
 
     class Role {
@@ -231,6 +230,7 @@ stateDiagram-v2
         Sin acceso al sistema
         Requiere activación manual
         Login rechazado
+        Estado inicial para ACCOUNT_OWNER/MEMBER
     end note
 
     note right of ACTIVE
