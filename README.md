@@ -118,8 +118,6 @@ asistencialegal/
 ├── openapi.json                   # Especificación OpenAPI generada
 ├── package.json                   # Dependencias y scripts
 ├── tsconfig.json                  # Configuración TypeScript
-├── AUDIT_REPORT.md                # Auditoría técnica Fases 1-2
-├── PROJECT_STATUS.md              # Estado detallado del proyecto
 └── README.md                      # Este archivo
 ```
 
@@ -163,21 +161,26 @@ classDiagram
         -updatedAt: Date
 
         +isEmployeesAccount(): boolean
-        +isClientAccount(): boolean
+        +updateName(newName: string): void
     }
 
     class Email {
+        <<Value Object>>
         -value: string
 
         +create(email: string): Email
         +getValue(): string
+        +equals(other: Email): boolean
+        +toString(): string
         -isValid(email: string): boolean
     }
 
     class Password {
+        <<Value Object>>
         -value: string
 
         +create(password: string): Password
+        +fromHash(hashedPassword: string): Password
         +getValue(): string
         -isValid(password: string): boolean
     }
@@ -196,14 +199,13 @@ classDiagram
         INVITED
         ACTIVE
         SUSPENDED
-        DELETED
     }
 
-    UserEntity "1" --> "1" Email : email
-    UserEntity "1" --> "1" Role : role
-    UserEntity "1" --> "1" UserStatus : status
-    UserEntity "n" --> "0..1" AccountEntity : account
-    AccountEntity "1" --> "1" UserEntity : owner
+    UserEntity *-- Email : composes
+    UserEntity *-- Role : has
+    UserEntity *-- UserStatus : has
+    UserEntity "n" --> "0..1" AccountEntity : belongsTo
+    AccountEntity "1" --> "1" UserEntity : ownedBy
 ```
 
 ### Diagrama de Estados - User Entity
@@ -211,125 +213,34 @@ classDiagram
 ```mermaid
 stateDiagram-v2
     [*] --> INVITED : Creación de usuario
+    [*] --> ACTIVE : Creación directa (empleados)
 
     INVITED --> ACTIVE : Acepta invitación
-    INVITED --> DELETED : Rechaza invitación / Expiración
+    INVITED --> [*] : Usuario eliminado
 
     ACTIVE --> SUSPENDED : Violación de políticas / Impago
-    ACTIVE --> DELETED : Eliminación por admin
+    ACTIVE --> [*] : Usuario eliminado
 
     SUSPENDED --> ACTIVE : Resolución de problema
-    SUSPENDED --> DELETED : Eliminación definitiva
-
-    DELETED --> [*]
+    SUSPENDED --> [*] : Usuario eliminado
 
     note right of INVITED
-        Usuario creado pero sin acceso
-        Puede recibir email de invitación
+        Usuario creado sin acceso
+        Para clientes pendientes de activación
+        Login rechazado
     end note
 
     note right of ACTIVE
         Usuario con acceso completo
-        Puede usar todas sus funciones según rol
+        Puede usar funciones según su rol
+        Estado normal de operación
     end note
 
     note right of SUSPENDED
         Acceso temporalmente bloqueado
-        Login rechazado
-        Datos conservados
+        Login rechazado en middleware
+        Datos conservados para reactivación
     end note
-
-    note right of DELETED
-        Soft delete (conserva datos)
-        Login permanentemente bloqueado
-        No aparece en listados
-    end note
-```
-
-### Diagrama de Componentes - Arquitectura Hexagonal
-
-```mermaid
-graph TB
-    subgraph "Interfaces Layer (Controllers)"
-        AuthController[Auth Controller<br/>POST /auth/login<br/>POST /auth/refresh]
-        UserController[User Controller<br/>POST /users<br/>GET /users<br/>GET /users/:id<br/>GET /users/me]
-    end
-
-    subgraph "Application Layer (Use Cases)"
-        LoginUC[Login UseCase]
-        RefreshUC[RefreshToken UseCase]
-        CreateUserUC[CreateUser UseCase]
-        GetUserUC[GetUser UseCase]
-        ListUsersUC[ListUsers UseCase]
-    end
-
-    subgraph "Domain Layer (Business Logic)"
-        UserEntity[User Entity<br/>+ RBAC Logic]
-        AccountEntity[Account Entity]
-        EmailVO[Email VO]
-        PasswordVO[Password VO]
-        IUserRepo[IUserRepository<br/>Interface]
-        IAccountRepo[IAccountRepository<br/>Interface]
-    end
-
-    subgraph "Infrastructure Layer (Technical Details)"
-        PrismaUserRepo[PrismaUser Repository<br/>Implementation]
-        PrismaAccountRepo[PrismaAccount Repository<br/>Implementation]
-        PasswordService[Password Service<br/>Argon2]
-        JwtService[JWT Service<br/>Access + Refresh]
-        JwtStrategy[JWT Strategy<br/>Passport]
-        JwtRefreshStrategy[JWT Refresh Strategy<br/>Passport]
-    end
-
-    subgraph "Database"
-        Prisma[(Prisma ORM)]
-        PostgreSQL[(PostgreSQL<br/>Neon)]
-    end
-
-    AuthController --> LoginUC
-    AuthController --> RefreshUC
-    UserController --> CreateUserUC
-    UserController --> GetUserUC
-    UserController --> ListUsersUC
-
-    LoginUC --> UserEntity
-    LoginUC --> IUserRepo
-    LoginUC --> PasswordService
-    LoginUC --> JwtService
-
-    RefreshUC --> IUserRepo
-    RefreshUC --> JwtService
-
-    CreateUserUC --> UserEntity
-    CreateUserUC --> IUserRepo
-    CreateUserUC --> IAccountRepo
-    CreateUserUC --> PasswordService
-    CreateUserUC --> EmailVO
-    CreateUserUC --> PasswordVO
-
-    GetUserUC --> UserEntity
-    GetUserUC --> IUserRepo
-
-    ListUsersUC --> UserEntity
-    ListUsersUC --> IUserRepo
-    ListUsersUC --> IAccountRepo
-
-    IUserRepo -.implements.- PrismaUserRepo
-    IAccountRepo -.implements.- PrismaAccountRepo
-
-    PrismaUserRepo --> Prisma
-    PrismaAccountRepo --> Prisma
-    Prisma --> PostgreSQL
-
-    JwtStrategy --> IUserRepo
-    JwtRefreshStrategy --> IUserRepo
-
-    style UserEntity fill:#e1f5ff
-    style AccountEntity fill:#e1f5ff
-    style EmailVO fill:#fff4e1
-    style PasswordVO fill:#fff4e1
-    style IUserRepo fill:#f0f0f0
-    style IAccountRepo fill:#f0f0f0
 ```
 
 ### Diagrama de Secuencia - Login Flow
@@ -856,52 +767,6 @@ openssl rand -base64 32  # Generar nuevo secret
 
 ---
 
-## 📊 Estado del Proyecto
-
-### Fases Completadas
-
-| Fase | Descripción | Estado | Fecha |
-|------|-------------|--------|-------|
-| Fase 1 | Seguridad y Fundamentos | ✅ Completo | 2025-10-15 |
-| Fase 2 | Engineering Fundamentals | ✅ Completo | 2025-10-17 |
-| Fase 3A | Arquitectura NestJS + Auth + Users | ✅ Completo | 2025-10-18 |
-
-### Fase Actual
-
-**Fase 3B (Próxima):** Gestión de Cuentas (Account Management)
-
-- [ ] Completar AccountController
-- [ ] Implementar AccountUseCases
-- [ ] Agregar endpoints de cuentas
-- [ ] Testing de módulo Account
-
-### Roadmap Futuro
-
-**Fase 4:** Testing y CI/CD
-- [ ] Configurar Jest
-- [ ] Unit tests para use cases
-- [ ] Integration tests para API
-- [ ] E2E tests críticos
-- [ ] GitHub Actions CI/CD
-
-**Fase 5:** Gestión de Contenido (Content Management)
-- [ ] Módulo Law/Content
-- [ ] Upload de archivos (PDFs)
-- [ ] Sistema de categorización
-- [ ] Búsqueda y filtros
-
-**Fase 6:** Notificaciones e Invitaciones
-- [ ] Sistema de invitaciones por email
-- [ ] Confirmación de cuenta
-- [ ] Notificaciones push
-
-**Fase 7:** Reportes y Analytics
-- [ ] Reportes de uso de contenido
-- [ ] Dashboards por rol
-- [ ] Exportación de datos
-
----
-
 ## 🤝 Contribución
 
 ### Estándares de Código
@@ -946,7 +811,7 @@ ISC
 
 ## 👥 Equipo
 
-- **Desarrollo:** Camilo (con asistencia de Claude Code)
+- **Desarrollo:** Camilo
 - **Arquitectura:** Diseño hexagonal + DDD
 - **Stack:** NestJS + Prisma + PostgreSQL
 
@@ -964,9 +829,9 @@ Para reportar bugs o solicitar features:
 
 ### Documentación Técnica
 
-- [AUDIT_REPORT.md](./AUDIT_REPORT.md) - Auditoría completa de Fases 1-2
-- [PROJECT_STATUS.md](./PROJECT_STATUS.md) - Estado detallado del desarrollo
-- [ANALISIS_TECNICO.md](./ANALISIS_TECNICO.md) - Análisis técnico de Fase 3A
+- **Schema de Base de Datos:** `prisma/schema.prisma`
+- **Diagramas ERD:** `prisma/erd/` (autogenerados)
+- **OpenAPI Spec:** `openapi.json` (autogenerado)
 
 ### Referencias Externas
 
