@@ -127,6 +127,13 @@ asistencialegal/
 
 ### Diagrama de Clases - Entidades de Dominio
 
+<!--
+CORREGIDO: UserEntity contiene Email como Value Object mediante composición.
+Password.vo existe pero solo se usa durante la creación de usuarios para validación.
+UserEntity almacena passwordHash como string (no como VO Password).
+Fuente: src/modules/user/domain/entities/User.entity.ts (línea 20: email: Email, línea 21: private _passwordHash: string)
+-->
+
 ```mermaid
 classDiagram
     class UserEntity {
@@ -147,10 +154,12 @@ classDiagram
         +canViewContent(): boolean
         +canManageContent(): boolean
         +canViewAccountMembers(accountId: string): boolean
-        +canViewUser(targetUser: UserEntity): boolean
-        +canListAllUsers(): boolean
-        +canListClientAccounts(): boolean
-        +canViewAccount(account: AccountEntity): boolean
+        +canEditUser(targetUser: UserEntity): boolean
+        +canAccessAccount(accountId: string): boolean
+        +suspend(): void
+        +activate(): void
+        +updateProfile(firstName: string, lastName: string): void
+        +updatePasswordHash(newPasswordHash: string): void
     }
 
     class AccountEntity {
@@ -173,16 +182,6 @@ classDiagram
         +equals(other: Email): boolean
         +toString(): string
         -isValid(email: string): boolean
-    }
-
-    class Password {
-        <<Value Object>>
-        -value: string
-
-        +create(password: string): Password
-        +fromHash(hashedPassword: string): Password
-        +getValue(): string
-        -isValid(password: string): boolean
     }
 
     class Role {
@@ -210,36 +209,43 @@ classDiagram
 
 ### Diagrama de Estados - User Entity
 
+<!--
+CORREGIDO: El sistema NO implementa eliminación lógica de usuarios (no existe estado DELETED).
+Solo existen tres estados: INVITED, ACTIVE, SUSPENDED según UserStatus enum.
+Transiciones implementadas:
+- suspend() (línea 243-249): cambia de ACTIVE a SUSPENDED
+- activate() (línea 254-257): cambia de SUSPENDED/INVITED a ACTIVE
+Fuente: src/modules/user/domain/entities/User.entity.ts
+-->
+
 ```mermaid
 stateDiagram-v2
-    [*] --> INVITED : Creación de usuario
-    [*] --> ACTIVE : Creación directa (empleados)
+    [*] --> INVITED : Creación de usuario cliente
+    [*] --> ACTIVE : Creación de empleado
 
-    INVITED --> ACTIVE : Acepta invitación
-    INVITED --> [*] : Usuario eliminado
-
-    ACTIVE --> SUSPENDED : Violación de políticas / Impago
-    ACTIVE --> [*] : Usuario eliminado
-
-    SUSPENDED --> ACTIVE : Resolución de problema
-    SUSPENDED --> [*] : Usuario eliminado
+    INVITED --> ACTIVE : activate() - Acepta invitación
+    ACTIVE --> SUSPENDED : suspend() - Violación/Impago
+    SUSPENDED --> ACTIVE : activate() - Problema resuelto
 
     note right of INVITED
         Usuario creado sin acceso
-        Para clientes pendientes de activación
+        Para clientes pendientes
         Login rechazado
+        Estado inicial para ACCOUNT_OWNER/MEMBER
     end note
 
     note right of ACTIVE
         Usuario con acceso completo
-        Puede usar funciones según su rol
+        Funciones según rol RBAC
         Estado normal de operación
+        Estado inicial para empleados
     end note
 
     note right of SUSPENDED
-        Acceso temporalmente bloqueado
-        Login rechazado en middleware
-        Datos conservados para reactivación
+        Acceso bloqueado temporalmente
+        Login rechazado
+        Datos conservados
+        Reversible con activate()
     end note
 ```
 
