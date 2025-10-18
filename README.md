@@ -398,7 +398,9 @@ graph TD
     OWNER -.nivel 3.- MEMBER
 ```
 
-**Matriz Detallada de Permisos:**
+**Matriz Detallada de Permisos (Actualizada):**
+
+> **Principio Fundamental:** SUPER_ADMIN tiene acceso total a TODAS las funciones del sistema sin restricciones.
 
 | Acción | SUPER_ADMIN | ADMIN | EDITOR | ACCOUNT_OWNER | MEMBER |
 |--------|-------------|-------|--------|---------------|--------|
@@ -409,16 +411,16 @@ graph TD
 | Crear ACCOUNT_OWNER | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Crear MEMBER | ✅ | ❌ | ❌ | ✅ | ❌ |
 | Ver todos los usuarios | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Ver usuarios clientes | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Ver usuarios de su cuenta | ❌ | ❌ | ❌ | ✅ | ❌ |
+| Ver usuarios clientes | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Ver usuarios de su cuenta | ✅ | ❌ | ❌ | ✅ | ❌ |
 | Ver su propio perfil | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Gestión de Cuentas** |
 | Ver todas las cuentas | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Ver cuentas de clientes | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Ver su propia cuenta | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Ver cuentas de clientes | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Ver su propia cuenta | ✅ | ❌ | ❌ | ✅ | ✅ |
 | Editar cuenta "Employees" | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Editar cuentas de clientes | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Editar su propia cuenta | ❌ | ❌ | ❌ | ✅ | ❌ |
+| Editar su propia cuenta | ✅ | ❌ | ❌ | ✅ | ❌ |
 | **Gestión de Contenido** |
 | Ver contenido | ✅ | ❌ | ✅ | ✅ | ✅ |
 | Crear/Editar contenido | ✅ | ❌ | ✅ | ❌ | ❌ |
@@ -426,16 +428,31 @@ graph TD
 | Generar reportes de contenido | ✅ | ❌ | ✅ | ❌ | ❌ |
 | **Reportes y Analytics** |
 | Ver reportes de plataforma | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Ver reportes de clientes | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Ver reportes de clientes | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Ver reportes de contenido | ✅ | ❌ | ✅ | ❌ | ❌ |
-| Ver estadísticas de su cuenta | ❌ | ❌ | ❌ | ✅ | ❌ |
+| Ver estadísticas de su cuenta | ✅ | ❌ | ❌ | ✅ | ❌ |
+
+**Cambios Realizados en la Matriz:**
+
+🔧 **Correcciones aplicadas a SUPER_ADMIN:**
+- ✅ "Ver usuarios clientes" - ahora SUPER_ADMIN puede ver usuarios clientes
+- ✅ "Ver usuarios de su cuenta" - ahora SUPER_ADMIN puede ver usuarios de cualquier cuenta
+- ✅ "Ver cuentas de clientes" - ahora SUPER_ADMIN puede ver cuentas de clientes
+- ✅ "Ver su propia cuenta" - ahora SUPER_ADMIN puede ver su propia cuenta
+- ✅ "Editar su propia cuenta" - ahora SUPER_ADMIN puede editar su propia cuenta
+- ✅ "Ver reportes de clientes" - ahora SUPER_ADMIN puede ver reportes de clientes
+- ✅ "Ver estadísticas de su cuenta" - ahora SUPER_ADMIN puede ver estadísticas de cuentas
+
+**Resultado:** SUPER_ADMIN ahora tiene ✅ en TODAS las filas de la matriz (acceso total sin excepciones).
 
 **Notas Importantes:**
 
 1. **SUPER_ADMIN:**
    - Único usuario de este rol (constraint en DB)
    - Pertenece a la cuenta "Employees"
-   - Control total del sistema
+   - **Acceso total sin restricciones a TODAS las funciones del sistema**
+   - Puede realizar cualquier acción sobre usuarios, cuentas, contenido y reportes
+   - Todos los permisos están centralizados en `src/shared/authorization/permissions.matrix.ts`
 
 2. **ADMIN:**
    - Pertenece a la cuenta "Employees"

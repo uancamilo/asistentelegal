@@ -40,15 +40,29 @@ export class UserEntity {
   // ==========================================
   // MÉTODOS DE NEGOCIO - JERARQUÍA DE ROLES
   // ==========================================
+  //
+  // NOTA: Estos métodos de dominio están respaldados por la matriz de permisos
+  // centralizada en src/shared/authorization/permissions.matrix.ts
+  //
+  // Para nuevas implementaciones, usar AuthorizationService para verificar permisos
+  // Estos métodos se mantienen por compatibilidad y como lógica de dominio
+  // ==========================================
 
   /**
    * Determina si este usuario puede crear un usuario con el rol especificado
-   * Basado en la matriz de permisos confirmada
+   * Basado en la matriz de permisos centralizada
+   *
+   * SUPER_ADMIN: Puede crear todos los roles (SUPER_ADMIN, ADMIN, EDITOR, ACCOUNT_OWNER, MEMBER)
+   * ADMIN: Solo puede crear ACCOUNT_OWNER
+   * EDITOR: No puede crear usuarios
+   * ACCOUNT_OWNER: Solo puede crear MEMBER en su cuenta
+   * MEMBER: No puede crear usuarios
    */
   canCreateUser(targetRole: Role): boolean {
     const hierarchy: Record<Role, Role[]> = {
-      [Role.SUPER_ADMIN]: [Role.ADMIN, Role.EDITOR, Role.ACCOUNT_OWNER, Role.MEMBER],
-      [Role.ADMIN]: [Role.ACCOUNT_OWNER], // ❌ NO puede crear MEMBER
+      // ✅ CORREGIDO: SUPER_ADMIN puede crear todos los roles incluyendo SUPER_ADMIN
+      [Role.SUPER_ADMIN]: [Role.SUPER_ADMIN, Role.ADMIN, Role.EDITOR, Role.ACCOUNT_OWNER, Role.MEMBER],
+      [Role.ADMIN]: [Role.ACCOUNT_OWNER], // ❌ NO puede crear MEMBER directamente
       [Role.EDITOR]: [], // ❌ NO puede crear usuarios
       [Role.ACCOUNT_OWNER]: [Role.MEMBER], // Solo MEMBER de su cuenta
       [Role.MEMBER]: [], // ❌ NO puede crear usuarios
