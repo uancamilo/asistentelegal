@@ -64,6 +64,9 @@ export class CreateUserUseCase {
     const userId = this.generateUserId();
     const now = new Date();
 
+    // Solo SUPER_ADMIN se crea directamente en ACTIVE, todos los demás en INVITED
+    const initialStatus = dto.role === Role.SUPER_ADMIN ? UserStatus.ACTIVE : UserStatus.INVITED;
+
     const user = new UserEntity(
       userId,
       email,
@@ -71,7 +74,7 @@ export class CreateUserUseCase {
       dto.firstName,
       dto.lastName,
       dto.role,
-      UserStatus.ACTIVE, // Los usuarios creados están activos por defecto
+      initialStatus,
       dto.accountId || null,
       now,
       now

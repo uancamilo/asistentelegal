@@ -213,24 +213,26 @@ La máquina de estados del usuario define los tres estados posibles y las transi
 
 ```mermaid
 stateDiagram-v2
-    [*] --> INVITED : Crear cliente (ACCOUNT_OWNER/MEMBER)
-    [*] --> ACTIVE : Crear empleado (SUPER_ADMIN/ADMIN/EDITOR)
+    [*] --> INVITED : Crear usuario (ADMIN/EDITOR/ACCOUNT_OWNER/MEMBER)
+    [*] --> ACTIVE : Crear SUPER_ADMIN (script inicialización)
 
-    INVITED --> ACTIVE : Cliente acepta invitación
+    INVITED --> ACTIVE : activate() [PENDIENTE: endpoint faltante]
     INVITED --> [*] : Usuario eliminado
 
     ACTIVE --> SUSPENDED : suspend()
     ACTIVE --> [*] : Usuario eliminado
 
-    SUSPENDED --> ACTIVE : reactivate()
+    SUSPENDED --> ACTIVE : activate()
     SUSPENDED --> [*] : Usuario eliminado
 
     note right of INVITED
-        Estado inicial para clientes
+        Estado inicial para todos los usuarios
+        excepto SUPER_ADMIN
         Sin acceso al sistema
-        Requiere activación manual
-        Login rechazado
-        Estado inicial para ACCOUNT_OWNER/MEMBER
+        Login rechazado automáticamente
+
+        ⚠️ FUNCIONALIDAD FALTANTE:
+        No existe endpoint para activar usuarios
     end note
 
     note right of ACTIVE
@@ -253,16 +255,17 @@ stateDiagram-v2
 
 **Explicación de la Máquina de Estados:**
 
-1. **Estado INVITED** (Solo para clientes):
-   - Los clientes (ACCOUNT_OWNER, MEMBER) inician en estado INVITED
-   - No pueden acceder al sistema hasta que acepten la invitación
-   - Transición a ACTIVE al aceptar la invitación
+1. **Estado INVITED** (Para todos excepto SUPER_ADMIN):
+   - Todos los usuarios (ADMIN, EDITOR, ACCOUNT_OWNER, MEMBER) inician en estado INVITED
+   - No pueden acceder al sistema - el login es rechazado automáticamente
+   - ⚠️ **IMPORTANTE:** Actualmente NO existe endpoint para activar usuarios
+   - Los usuarios quedan bloqueados permanentemente hasta implementar funcionalidad de activación
    - Pueden ser eliminados antes de activarse
 
-2. **Estado ACTIVE** (Empleados y clientes activos):
-   - Los empleados (SUPER_ADMIN, ADMIN, EDITOR) se crean directamente en ACTIVE
-   - Los clientes transicionan a ACTIVE al aceptar invitación
+2. **Estado ACTIVE** (Usuario operativo):
+   - Solo SUPER_ADMIN se crea directamente en ACTIVE (via script de inicialización)
    - Estado operativo normal con acceso completo según rol
+   - Login permitido y funciones disponibles según permisos de rol
    - Pueden ser suspendidos por diferentes razones según tipo de usuario
 
 3. **Estado SUSPENDED** (Acceso temporalmente bloqueado):
@@ -270,12 +273,17 @@ stateDiagram-v2
    - **Para clientes:** Por violación de términos de servicio o impago de servicios
    - El login es rechazado automáticamente por el middleware de autenticación
    - Los datos se conservan para permitir reactivación posterior
-   - Pueden ser reactivados o eliminados definitivamente
+   - Pueden ser reactivados usando el método `activate()` existente
 
-**Diferencias Clave por Tipo de Usuario:**
+**Estado Actual de Implementación:**
 
-- **Empleados:** Creación directa → ACTIVE, suspensión solo por políticas internas
-- **Clientes:** Creación → INVITED → ACTIVE, suspensión por términos/impago
+- **SUPER_ADMIN:** ✅ Funcional - Creación directa → ACTIVE (script de inicialización)
+- **Empleados (ADMIN/EDITOR):** ⚠️ Bloqueados - Creación → INVITED (sin manera de activar)
+- **Clientes (ACCOUNT_OWNER/MEMBER):** ⚠️ Bloqueados - Creación → INVITED (sin manera de activar)
+
+**Funcionalidad Pendiente:**
+- Implementar endpoint `POST /users/activate` para transición INVITED → ACTIVE
+- Implementar sistema de tokens/links de activación para seguridad
 
 ### Diagrama de Secuencia - Login Flow
 

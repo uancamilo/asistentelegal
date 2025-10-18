@@ -96,7 +96,7 @@ async function main() {
             firstName: 'Admin',
             lastName: 'User',
             role: 'ADMIN',
-            status: 'ACTIVE',
+            status: 'INVITED',
             accountId: employeesAccount.id, // ✅ Asignado a Employees
           },
         });
@@ -121,7 +121,7 @@ async function main() {
             firstName: 'Editor',
             lastName: 'User',
             role: 'EDITOR',
-            status: 'ACTIVE',
+            status: 'INVITED',
             accountId: employeesAccount.id, // ✅ Asignado a Employees
           },
         });
