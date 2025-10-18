@@ -63,6 +63,16 @@ export class UserController {
     return await this.listUsersUseCase.execute(currentUser);
   }
 
+  @Get('me')
+  @ApiOperation({
+    summary: 'Obtener perfil propio',
+    description: 'Obtiene el perfil del usuario autenticado',
+  })
+  @ApiResponse({ status: 200, description: 'Perfil del usuario', type: GetUserResponseDto })
+  async getProfile(@CurrentUser() currentUser: UserEntity): Promise<GetUserResponseDto> {
+    return await this.getUserUseCase.execute(currentUser.id, currentUser);
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Obtener usuario por ID',
@@ -76,15 +86,5 @@ export class UserController {
     @CurrentUser() currentUser: UserEntity
   ): Promise<GetUserResponseDto> {
     return await this.getUserUseCase.execute(id, currentUser);
-  }
-
-  @Get('me')
-  @ApiOperation({
-    summary: 'Obtener perfil propio',
-    description: 'Obtiene el perfil del usuario autenticado',
-  })
-  @ApiResponse({ status: 200, description: 'Perfil del usuario', type: GetUserResponseDto })
-  async getProfile(@CurrentUser() currentUser: UserEntity): Promise<GetUserResponseDto> {
-    return await this.getUserUseCase.execute(currentUser.id, currentUser);
   }
 }
