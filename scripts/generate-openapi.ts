@@ -24,7 +24,7 @@ async function generateOpenAPI() {
     )
     .addTag('auth', 'Endpoints de autenticación')
     .addTag('users', 'Gestión de usuarios')
-    .addServer('http://localhost:3000', 'Development server')
+    .addServer('http://localhost:3000/api', 'Development server')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
