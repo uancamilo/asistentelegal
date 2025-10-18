@@ -19,6 +19,11 @@
       "key": "refreshToken",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -36,7 +41,9 @@
                   "    const response = pm.response.json();",
                   "    pm.collectionVariables.set('accessToken', response.accessToken);",
                   "    pm.collectionVariables.set('refreshToken', response.refreshToken);",
+                  "    pm.collectionVariables.set('userId', response.user.id);",
                   "    console.log('✅ Tokens guardados');",
+                  "    console.log('✅ User ID guardado: ' + response.user.id);",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -145,15 +152,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/users/:id",
+              "raw": "{{baseUrl}}/users/{{userId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["users", ":id"],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": "USER_ID_HERE"
-                }
-              ]
+              "path": ["users", "{{userId}}"]
             },
             "description": "Obtiene un usuario por ID"
           },

@@ -154,6 +154,34 @@
         ]
       }
     },
+    "/users/me": {
+      "get": {
+        "operationId": "UserController_getProfile",
+        "summary": "Obtener perfil propio",
+        "description": "Obtiene el perfil del usuario autenticado",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Perfil del usuario",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetUserResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
     "/users/{id}": {
       "get": {
         "operationId": "UserController_getById",
@@ -185,34 +213,6 @@
           },
           "404": {
             "description": "Usuario no encontrado"
-          }
-        },
-        "tags": [
-          "users"
-        ],
-        "security": [
-          {
-            "JWT-auth": []
-          }
-        ]
-      }
-    },
-    "/users/me": {
-      "get": {
-        "operationId": "UserController_getProfile",
-        "summary": "Obtener perfil propio",
-        "description": "Obtiene el perfil del usuario autenticado",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Perfil del usuario",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GetUserResponseDto"
-                }
-              }
-            }
           }
         },
         "tags": [
