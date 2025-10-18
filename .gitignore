@@ -1,10 +1,8 @@
 node_modules
+dist
 
 # Keep environment variables out of version control
 .env
 
 # Generated Prisma client
 /generated/prisma
-
-# Audit reports (keep locally, don't version)
-AUDIT_REPORT.md
