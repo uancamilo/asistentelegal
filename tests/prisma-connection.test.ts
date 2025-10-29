@@ -33,4 +33,56 @@ describe('Prisma Database Connection', () => {
 
     expect(superAdmins.length).toBeLessThanOrEqual(1);
   });
+
+  it('should prevent creating duplicate SUPER_ADMIN at database level', async () => {
+    // First, check if a SUPER_ADMIN already exists
+    const existingSuperAdmin = await prisma.user.findFirst({
+      where: { role: 'SUPER_ADMIN' },
+    });
+
+    if (existingSuperAdmin) {
+      // If one exists, trying to create another should fail
+      await expect(
+        prisma.user.create({
+          data: {
+            email: 'duplicate-super-admin@test.com',
+            passwordHash: 'hashedpassword',
+            firstName: 'Duplicate',
+            lastName: 'Admin',
+            role: 'SUPER_ADMIN',
+            status: 'ACTIVE',
+          },
+        })
+      ).rejects.toThrow(/unique constraint/i);
+    } else {
+      // If no SUPER_ADMIN exists, we can create one, but not two
+      const firstSuperAdmin = await prisma.user.create({
+        data: {
+          email: 'first-super-admin@test.com',
+          passwordHash: 'hashedpassword',
+          firstName: 'First',
+          lastName: 'Admin',
+          role: 'SUPER_ADMIN',
+          status: 'ACTIVE',
+        },
+      });
+
+      // Now trying to create a second one should fail
+      await expect(
+        prisma.user.create({
+          data: {
+            email: 'second-super-admin@test.com',
+            passwordHash: 'hashedpassword',
+            firstName: 'Second',
+            lastName: 'Admin',
+            role: 'SUPER_ADMIN',
+            status: 'ACTIVE',
+          },
+        })
+      ).rejects.toThrow(/unique constraint/i);
+
+      // Cleanup
+      await prisma.user.delete({ where: { id: firstSuperAdmin.id } });
+    }
+  });
 });
