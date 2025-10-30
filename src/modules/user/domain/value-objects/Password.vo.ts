@@ -14,7 +14,7 @@ export class Password {
     }
 
     if (!this.isValid(plainPassword)) {
-      throw new ValidationError('Password must be at least 8 characters long');
+      throw new ValidationError('Password must include uppercase, lowercase, number and special character.');
     }
 
     return new Password(plainPassword);
@@ -30,7 +30,15 @@ export class Password {
 
   private static isValid(password: string): boolean {
     // Mínimo 8 caracteres
-    return password.length >= 8;
+    if (password.length < 8) return false;
+
+    // Validar presencia de caracteres requeridos
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    return hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
   }
 
   getValue(): string {
