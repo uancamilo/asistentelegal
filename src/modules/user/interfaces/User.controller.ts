@@ -9,6 +9,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { CreateUserUseCase } from '../application/use-cases/CreateUser.usecase';
 import { GetUserUseCase } from '../application/use-cases/GetUser.usecase';
 import { ListUsersUseCase } from '../application/use-cases/ListUsers.usecase';
@@ -23,7 +24,8 @@ import { UserEntity, Role } from '../domain/entities/User.entity';
 @ApiTags('users')
 @ApiBearerAuth('JWT-auth')
 @Controller('users')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@Throttle({ default: { limit: 30, ttl: 60000 } })
+@UseGuards(ThrottlerGuard, JwtAuthGuard, RolesGuard)
 export class UserController {
   constructor(
     private readonly createUserUseCase: CreateUserUseCase,
@@ -43,6 +45,7 @@ export class UserController {
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
   @ApiResponse({ status: 403, description: 'No tiene permisos para crear este rol' })
   @ApiResponse({ status: 409, description: 'Email ya existe' })
+  @ApiResponse({ status: 429, description: 'Demasiadas peticiones. Intenta nuevamente más tarde.' })
   async create(
     @Body() createUserDto: CreateUserRequestDto,
     @CurrentUser() currentUser: UserEntity
@@ -59,6 +62,7 @@ export class UserController {
   })
   @ApiResponse({ status: 200, description: 'Lista de usuarios', type: ListUsersResponseDto })
   @ApiResponse({ status: 403, description: 'No tiene permisos para listar usuarios' })
+  @ApiResponse({ status: 429, description: 'Demasiadas peticiones. Intenta nuevamente más tarde.' })
   async list(@CurrentUser() currentUser: UserEntity): Promise<ListUsersResponseDto> {
     return await this.listUsersUseCase.execute(currentUser);
   }
@@ -69,6 +73,7 @@ export class UserController {
     description: 'Obtiene el perfil del usuario autenticado',
   })
   @ApiResponse({ status: 200, description: 'Perfil del usuario', type: GetUserResponseDto })
+  @ApiResponse({ status: 429, description: 'Demasiadas peticiones. Intenta nuevamente más tarde.' })
   async getProfile(@CurrentUser() currentUser: UserEntity): Promise<GetUserResponseDto> {
     return await this.getUserUseCase.execute(currentUser.id, currentUser);
   }
@@ -81,6 +86,7 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'Usuario encontrado', type: GetUserResponseDto })
   @ApiResponse({ status: 403, description: 'No tiene permisos para ver este usuario' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+  @ApiResponse({ status: 429, description: 'Demasiadas peticiones. Intenta nuevamente más tarde.' })
   async getById(
     @Param('id') id: string,
     @CurrentUser() currentUser: UserEntity
