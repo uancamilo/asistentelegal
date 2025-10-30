@@ -46,6 +46,7 @@ export class LoginUseCase {
       sub: user.id,
       email: user.email.getValue(),
       role: user.role,
+      tokenVersion: user.tokenVersion,
     });
 
     // 5. Retornar respuesta

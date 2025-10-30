@@ -15,6 +15,7 @@ type PrismaUser = {
   accountId: string | null;
   createdAt: Date;
   updatedAt: Date;
+  tokenVersion: number;
 };
 
 @Injectable()
@@ -101,6 +102,9 @@ export class PrismaUserRepository implements IUserRepository {
     if (userData.status !== undefined) {
       updateData.status = userData.status;
     }
+    if (userData.tokenVersion !== undefined) {
+      updateData.tokenVersion = userData.tokenVersion;
+    }
     if (userData.updatedAt !== undefined) {
       updateData.updatedAt = userData.updatedAt;
     }
@@ -146,7 +150,8 @@ export class PrismaUserRepository implements IUserRepository {
       prismaUser.status as UserStatus,
       prismaUser.accountId,
       prismaUser.createdAt,
-      prismaUser.updatedAt
+      prismaUser.updatedAt,
+      prismaUser.tokenVersion
     );
   }
 }

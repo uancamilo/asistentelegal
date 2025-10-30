@@ -34,7 +34,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new UnauthorizedException('User is not active');
     }
 
-    // 3. Retornar la entidad de usuario completa
+    // 3. Verificar que el token no haya sido revocado
+    if (payload.tokenVersion !== user.tokenVersion) {
+      throw new UnauthorizedException('Token revoked or invalid');
+    }
+
+    // 4. Retornar la entidad de usuario completa
     // Passport automáticamente la adjuntará a req.user
     return user;
   }

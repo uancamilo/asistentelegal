@@ -6,6 +6,7 @@ export interface JwtPayload {
   sub: string; // user id
   email: string;
   role: string;
+  tokenVersion: number;
 }
 
 export interface TokenPair {
