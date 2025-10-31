@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './shared/filters/HttpException.filter';
 
@@ -10,6 +11,21 @@ async function bootstrap() {
 
   // Obtener ConfigService
   const configService = app.get(ConfigService);
+
+  // Configurar Helmet para headers de seguridad HTTP
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+        },
+      },
+      crossOriginEmbedderPolicy: false, // Evita conflictos con CORS
+    })
+  );
 
   // Configurar CORS
   app.enableCors({
