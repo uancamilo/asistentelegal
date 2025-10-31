@@ -35,6 +35,7 @@ SUSPENDED SUSPENDED
     UserStatus status 
     DateTime createdAt 
     DateTime updatedAt 
+    Int tokenVersion 
     }
   
     "Account" o|--|| "User" : "owner"

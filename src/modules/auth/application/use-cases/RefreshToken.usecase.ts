@@ -34,7 +34,12 @@ export class RefreshTokenUseCase {
       throw new UnauthorizedException('User is not active');
     }
 
-    // 4. Generar nuevo par de tokens
+    // 4. Verificar que el token no haya sido revocado
+    if (payload.tokenVersion !== user.tokenVersion) {
+      throw new UnauthorizedException('Token revoked or invalid');
+    }
+
+    // 5. Generar nuevo par de tokens
     const tokens = await this.jwtService.generateTokenPair({
       sub: user.id,
       email: user.email.getValue(),
@@ -42,7 +47,7 @@ export class RefreshTokenUseCase {
       tokenVersion: user.tokenVersion,
     });
 
-    // 5. Retornar nuevos tokens
+    // 6. Retornar nuevos tokens
     return {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,

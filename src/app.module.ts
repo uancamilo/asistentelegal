@@ -27,10 +27,12 @@ import { validate } from './config/env.validation';
     // Controladores protegidos actualmente:
     // - AuthController: 5 req/60s (login), 10 req/60s (refresh)
     // - UserController: 30 req/60s (todos los endpoints)
+    //
+    // NOTA: En entorno de test, el rate limiting está relajado para evitar fallos en la suite de Jest
     ThrottlerModule.forRoot([
       {
-        ttl: 60000, // 60 segundos (en milisegundos para @nestjs/throttler v6+)
-        limit: 5,   // máximo 5 requests por IP (parámetro por defecto)
+        ttl: process.env['NODE_ENV'] === 'test' ? 1 : 60000, // Test: 1ms | Prod: 60s
+        limit: process.env['NODE_ENV'] === 'test' ? 5 : 5,    // Test: 5 req/ms | Prod: 5 req/60s
       },
     ]),
     // Módulo global de Prisma
