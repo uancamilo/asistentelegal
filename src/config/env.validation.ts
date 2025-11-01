@@ -1,10 +1,37 @@
 import { plainToInstance } from 'class-transformer';
-import { IsString, IsNumber, IsEnum, validateSync, MinLength } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsEnum,
+  validateSync,
+  MinLength,
+  Validate,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+  ValidationArguments,
+} from 'class-validator';
 
 enum Environment {
   Development = 'development',
   Production = 'production',
   Test = 'test',
+}
+
+/**
+ * Validador personalizado para garantizar que JWT_SECRET y JWT_REFRESH_SECRET sean diferentes.
+ * Esto previene que un refresh token pueda ser usado como access token, lo cual violaría
+ * el modelo de seguridad de rotación de tokens.
+ */
+@ValidatorConstraint({ name: 'secretsAreDifferent', async: false })
+export class SecretsAreDifferentValidator implements ValidatorConstraintInterface {
+  validate(_value: string, args: ValidationArguments): boolean {
+    const obj = args.object as EnvironmentVariables;
+    return obj.JWT_SECRET !== obj.JWT_REFRESH_SECRET;
+  }
+
+  defaultMessage(_args: ValidationArguments): string {
+    return 'JWT_SECRET and JWT_REFRESH_SECRET must be different';
+  }
 }
 
 class EnvironmentVariables {
@@ -36,6 +63,7 @@ class EnvironmentVariables {
 
   @IsString()
   @MinLength(32)
+  @Validate(SecretsAreDifferentValidator)
   JWT_SECRET!: string;
 
   @IsString()
