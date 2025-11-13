@@ -1,0 +1,338 @@
+{
+  "info": {
+    "name": "AsistenciaLegal API",
+    "description": "API REST para el sistema de gestión legal con autenticación JWT y RBAC.\n\n**Estado del proyecto:** Tareas #1-#4 completadas (constraint SUPER_ADMIN, rate limiting, validación de passwords, logout con revocación de tokens).\n\n**Seguridad implementada:**\n- Rate limiting en todos los endpoints (ThrottlerGuard)\n- Validación robusta de contraseñas (uppercase, lowercase, number, special char)\n- Revocación de tokens JWT con tokenVersion\n- Autorización basada en roles (RBAC)\n\n**Variables de entorno:**\n- `baseUrl`: URL base de la API (http://localhost:3000/api)\n- `accessToken`: Token JWT de acceso (15 minutos)\n- `refreshToken`: Token JWT de renovación (7 días)\n- `userId`: ID del usuario autenticado\n\n**Nota:** Los tokens se guardan automáticamente al hacer login exitoso.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.4.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Endpoints de autenticación con protección contra fuerza bruta (rate limiting).\n\n**Rate limiting aplicado:**\n- POST /auth/login: 5 req/60s por IP\n- POST /auth/refresh: 10 req/60s por IP\n- POST /auth/logout: 5 req/60s por IP\n\n**Respuestas comunes:**\n- HTTP 200: Operación exitosa\n- HTTP 401: Credenciales inválidas o token expirado\n- HTTP 429: Rate limit excedido (Too Many Requests)",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('accessToken', response.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', response.refreshToken);",
+                  "    pm.collectionVariables.set('userId', response.user.id);",
+                  "    console.log('✅ Tokens guardados');",
+                  "    console.log('✅ Access token expira en: 15 minutos');",
+                  "    console.log('✅ Refresh token expira en: 7 días');",
+                  "    console.log('✅ User ID: ' + response.user.id);",
+                  "    console.log('✅ Role: ' + response.user.role);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@email.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "**Descripción:**\nAutentica un usuario mediante email y contraseña, retornando tokens JWT (access y refresh).\n\n**Rate limiting:** 5 intentos cada 60 segundos por IP.\n\n**Validaciones:**\n- Email válido requerido\n- Contraseña debe cumplir requisitos de complejidad (uppercase, lowercase, number, special char)\n- Usuario debe estar en estado ACTIVE\n\n**Respuestas:**\n- **200 OK:** Login exitoso, retorna accessToken, refreshToken y datos del usuario\n- **401 Unauthorized:** Credenciales inválidas, usuario suspendido o no activado\n- **429 Too Many Requests:** Excedido límite de 5 intentos en 60 segundos\n\n**Ejemplo de respuesta exitosa (200):**\n```json\n{\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"user\": {\n    \"id\": \"clxxx...\",\n    \"email\": \"admin@email.com\",\n    \"firstName\": \"Admin\",\n    \"lastName\": \"User\",\n    \"role\": \"SUPER_ADMIN\",\n    \"status\": \"ACTIVE\"\n  }\n}\n```\n\n**Ejemplo de respuesta de error (401):**\n```json\n{\n  \"statusCode\": 401,\n  \"message\": \"Invalid credentials\"\n}\n```\n\n**Uso:**\n1. Ejecutar este request\n2. Los tokens se guardan automáticamente en variables de colección\n3. Usar accessToken para requests autenticados\n4. Usar refreshToken cuando accessToken expire"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('accessToken', response.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', response.refreshToken);",
+                  "    console.log('✅ Tokens renovados');",
+                  "    console.log('✅ Nuevo access token guardado');",
+                  "    console.log('✅ Nuevo refresh token guardado');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "**Descripción:**\nRenueva un par de tokens (access + refresh) usando un refresh token válido. El refresh token se envía en el body del request.\n\n**Rate limiting:** 10 intentos cada 60 segundos por IP (más flexible que login).\n\n**Validaciones:**\n- Refresh token válido y no expirado\n- tokenVersion del token debe coincidir con tokenVersion del usuario en BD\n- Usuario debe estar en estado ACTIVE\n\n**Respuestas:**\n- **200 OK:** Tokens renovados exitosamente, retorna nuevo accessToken y refreshToken\n- **401 Unauthorized:** Refresh token inválido, expirado, revocado o usuario no activo\n- **429 Too Many Requests:** Excedido límite de 10 intentos en 60 segundos\n\n**Ejemplo de respuesta exitosa (200):**\n```json\n{\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n}\n```\n\n**Ejemplo de respuesta de error (401):**\n```json\n{\n  \"statusCode\": 401,\n  \"message\": \"Invalid refresh token\"\n}\n```\n\n**Nota importante:**\nDespués de hacer logout, el refresh token queda invalidado automáticamente debido al incremento de tokenVersion en el usuario. Intentar usar el refresh token después de logout resultará en HTTP 401.\n\n**Uso:**\n1. Usar cuando accessToken expire (después de 15 minutos)\n2. Los nuevos tokens se guardan automáticamente en variables de colección\n3. Ambos tokens (access y refresh) se renuevan simultáneamente"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('✅ Logout exitoso');",
+                  "    console.log('⚠️ Todos los tokens previos han sido invalidados');",
+                  "    console.log('⚠️ tokenVersion del usuario incrementado');",
+                  "    console.log('ℹ️ Debes hacer login nuevamente para obtener nuevos tokens');",
+                  "    ",
+                  "    // Opcional: Limpiar tokens de variables (descomenta si lo deseas)",
+                  "    // pm.collectionVariables.set('accessToken', '');",
+                  "    // pm.collectionVariables.set('refreshToken', '');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "**Descripción:**\nCierra la sesión del usuario invalidando TODOS sus tokens activos. Este endpoint incrementa el campo `tokenVersion` del usuario en la base de datos, lo que causa que todos los tokens JWT previos (tanto access como refresh) queden automáticamente revocados.\n\n**Autenticación:** JWT Bearer token requerido.\n\n**Rate limiting:** 5 intentos cada 60 segundos por IP.\n\n**Mecanismo de revocación:**\n1. Usuario hace logout → tokenVersion se incrementa (ejemplo: de 0 a 1)\n2. Tokens previos tienen tokenVersion: 0 en su payload\n3. En próximo request, JwtStrategy valida: payload.tokenVersion !== user.tokenVersion\n4. Validación falla → HTTP 401 \"Token revoked or invalid\"\n\n**Validaciones:**\n- Token JWT válido en header Authorization\n- Usuario autenticado y activo\n\n**Respuestas:**\n- **200 OK:** Logout exitoso, todos los tokens invalidados\n- **401 Unauthorized:** No autenticado o token inválido/expirado/revocado\n- **429 Too Many Requests:** Excedido límite de 5 intentos en 60 segundos\n\n**Ejemplo de respuesta exitosa (200):**\n```json\n{\n  \"message\": \"Logout successful\"\n}\n```\n\n**Ejemplo de respuesta de error (401):**\n```json\n{\n  \"statusCode\": 401,\n  \"message\": \"Unauthorized\"\n}\n```\n\n**Casos de uso:**\n1. **Logout normal:** Usuario cierra sesión voluntariamente\n2. **Dispositivo robado:** Usuario hace logout desde otro dispositivo para invalidar sesión del dispositivo robado\n3. **Token comprometido:** Administrador puede forzar logout incrementando tokenVersion manualmente en BD\n4. **Seguridad preventiva:** Invalidar todos los tokens antes de cambio de contraseña\n\n**Nota importante:**\nDespués de logout:\n- Todos los access tokens quedan invalidados\n- Todos los refresh tokens quedan invalidados\n- Intentar usar tokens previos resultará en HTTP 401\n- Debes hacer login nuevamente para obtener nuevos tokens con el nuevo tokenVersion\n\n**Uso:**\n1. Asegurarse de tener un accessToken válido guardado en variables\n2. Ejecutar este request\n3. Tokens previos quedan invalidados inmediatamente\n4. Hacer login nuevamente si necesitas continuar usando la API"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "Endpoints de gestión de usuarios con autorización basada en roles (RBAC).\n\n**Rate limiting aplicado:** 30 req/60s por IP en todos los endpoints de /users.\n\n**Autenticación:** Todos los endpoints requieren JWT Bearer token.\n\n**Roles y permisos:**\n- **SUPER_ADMIN:** Acceso total (puede crear todos los roles, ver todos los usuarios)\n- **ADMIN:** Puede crear ACCOUNT_OWNER, ver usuarios clientes\n- **ACCOUNT_OWNER:** Puede crear MEMBER en su cuenta, ver usuarios de su cuenta\n- **EDITOR:** Solo puede ver su propio perfil\n- **MEMBER:** Solo puede ver su propio perfil\n\n**Respuestas comunes:**\n- HTTP 200/201: Operación exitosa\n- HTTP 400: Datos inválidos\n- HTTP 401: No autenticado\n- HTTP 403: Sin permisos para realizar la acción\n- HTTP 404: Recurso no encontrado\n- HTTP 409: Conflicto (email duplicado)\n- HTTP 429: Rate limit excedido",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me"]
+            },
+            "description": "**Descripción:**\nObtiene el perfil del usuario autenticado (información del token JWT).\n\n**Autenticación:** JWT Bearer token requerido.\n\n**Roles permitidos:** Todos (cualquier usuario autenticado puede ver su propio perfil).\n\n**Rate limiting:** 30 req/60s por IP.\n\n**Validaciones:**\n- Token JWT válido\n- Usuario en estado ACTIVE\n\n**Respuestas:**\n- **200 OK:** Perfil del usuario retornado exitosamente\n- **401 Unauthorized:** No autenticado o token inválido/expirado\n- **429 Too Many Requests:** Excedido límite de 30 intentos en 60 segundos\n\n**Ejemplo de respuesta exitosa (200):**\n```json\n{\n  \"id\": \"clxxx...\",\n  \"email\": \"admin@email.com\",\n  \"firstName\": \"Admin\",\n  \"lastName\": \"User\",\n  \"role\": \"SUPER_ADMIN\",\n  \"status\": \"ACTIVE\",\n  \"accountId\": null,\n  \"createdAt\": \"2025-10-30T00:00:00.000Z\",\n  \"updatedAt\": \"2025-10-30T00:00:00.000Z\"\n}\n```\n\n**Uso:**\nEndpoint útil para obtener información del usuario autenticado sin necesidad de conocer su ID."
+          },
+          "response": []
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            },
+            "description": "**Descripción:**\nLista usuarios según los permisos del rol autenticado. El filtrado se aplica automáticamente según la jerarquía de roles.\n\n**Autenticación:** JWT Bearer token requerido.\n\n**Roles permitidos:** SUPER_ADMIN, ADMIN, ACCOUNT_OWNER.\n\n**Rate limiting:** 30 req/60s por IP.\n\n**Filtrado por rol:**\n- **SUPER_ADMIN:** Ve TODOS los usuarios del sistema (empleados y clientes)\n- **ADMIN:** Ve solo usuarios clientes (ACCOUNT_OWNER y MEMBER)\n- **ACCOUNT_OWNER:** Ve solo usuarios de su propia cuenta (MEMBER de su cuenta)\n\n**Validaciones:**\n- Token JWT válido\n- Usuario con rol permitido (SUPER_ADMIN, ADMIN o ACCOUNT_OWNER)\n\n**Respuestas:**\n- **200 OK:** Lista de usuarios filtrada según permisos\n- **401 Unauthorized:** No autenticado o token inválido/expirado\n- **403 Forbidden:** Rol no autorizado para listar usuarios (EDITOR, MEMBER)\n- **429 Too Many Requests:** Excedido límite de 30 intentos en 60 segundos\n\n**Ejemplo de respuesta exitosa (200):**\n```json\n{\n  \"users\": [\n    {\n      \"id\": \"clxxx...\",\n      \"email\": \"user1@email.com\",\n      \"firstName\": \"User\",\n      \"lastName\": \"One\",\n      \"role\": \"ACCOUNT_OWNER\",\n      \"status\": \"ACTIVE\",\n      \"accountId\": \"clyyyy...\",\n      \"createdAt\": \"2025-10-30T00:00:00.000Z\"\n    },\n    {\n      \"id\": \"clzzz...\",\n      \"email\": \"user2@email.com\",\n      \"firstName\": \"User\",\n      \"lastName\": \"Two\",\n      \"role\": \"MEMBER\",\n      \"status\": \"ACTIVE\",\n      \"accountId\": \"clyyyy...\",\n      \"createdAt\": \"2025-10-30T00:00:00.000Z\"\n    }\n  ]\n}\n```\n\n**Uso:**\nÚtil para interfaces de administración donde se necesita listar usuarios según permisos jerárquicos."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            },
+            "description": "**Descripción:**\nObtiene un usuario específico por ID. Los permisos se verifican según el rol del usuario autenticado.\n\n**Autenticación:** JWT Bearer token requerido.\n\n**Roles permitidos:** Todos (con restricciones según jerarquía).\n\n**Rate limiting:** 30 req/60s por IP.\n\n**Permisos por rol:**\n- **SUPER_ADMIN:** Puede ver cualquier usuario\n- **ADMIN:** Puede ver usuarios clientes (ACCOUNT_OWNER, MEMBER)\n- **EDITOR:** Solo puede ver su propio perfil\n- **ACCOUNT_OWNER:** Puede ver MEMBER de su cuenta y su propio perfil\n- **MEMBER:** Solo puede ver su propio perfil\n\n**Validaciones:**\n- Token JWT válido\n- ID de usuario válido\n- Permisos según jerarquía de roles\n\n**Respuestas:**\n- **200 OK:** Usuario encontrado y permisos verificados\n- **401 Unauthorized:** No autenticado o token inválido/expirado\n- **403 Forbidden:** Sin permisos para ver este usuario específico\n- **404 Not Found:** Usuario con el ID especificado no existe\n- **429 Too Many Requests:** Excedido límite de 30 intentos en 60 segundos\n\n**Ejemplo de respuesta exitosa (200):**\n```json\n{\n  \"id\": \"clxxx...\",\n  \"email\": \"user@email.com\",\n  \"firstName\": \"User\",\n  \"lastName\": \"Name\",\n  \"role\": \"MEMBER\",\n  \"status\": \"ACTIVE\",\n  \"accountId\": \"clyyyy...\",\n  \"createdAt\": \"2025-10-30T00:00:00.000Z\",\n  \"updatedAt\": \"2025-10-30T00:00:00.000Z\"\n}\n```\n\n**Ejemplo de respuesta de error (403):**\n```json\n{\n  \"statusCode\": 403,\n  \"message\": \"Forbidden\"\n}\n```\n\n**Uso:**\n1. Reemplazar `{{userId}}` con el ID del usuario a consultar\n2. O usar la variable de colección que se guarda automáticamente al hacer login"
+          },
+          "response": []
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nuevo@ejemplo.com\",\n  \"password\": \"SecureP@ss123\",\n  \"firstName\": \"Nuevo\",\n  \"lastName\": \"Usuario\",\n  \"role\": \"MEMBER\",\n  \"accountId\": \"ACCOUNT_ID_HERE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            },
+            "description": "**Descripción:**\nCrea un nuevo usuario. Los roles que puede crear dependen del rol del usuario autenticado.\n\n**Autenticación:** JWT Bearer token requerido.\n\n**Roles permitidos:** SUPER_ADMIN, ADMIN, ACCOUNT_OWNER.\n\n**Rate limiting:** 30 req/60s por IP.\n\n**Jerarquía de creación de usuarios:**\n- **SUPER_ADMIN:** Puede crear TODOS los roles (SUPER_ADMIN, ADMIN, EDITOR, ACCOUNT_OWNER, MEMBER)\n- **ADMIN:** Solo puede crear ACCOUNT_OWNER\n- **ACCOUNT_OWNER:** Solo puede crear MEMBER en su propia cuenta\n\n**Validaciones de campos:**\n\n1. **email** (string, requerido):\n   - Formato de email válido\n   - No puede estar duplicado en el sistema\n   - Ejemplo: \"usuario@ejemplo.com\"\n\n2. **password** (string, requerido):\n   - Mínimo 8 caracteres\n   - Al menos UNA letra mayúscula (A-Z)\n   - Al menos UNA letra minúscula (a-z)\n   - Al menos UN número (0-9)\n   - Al menos UN carácter especial (!@#$%^&*(),.?\":{}|<>)\n   - Ejemplo válido: \"SecureP@ss123\"\n   - Ejemplo inválido: \"password\" (falta mayúscula, número y carácter especial)\n\n3. **firstName** (string, requerido):\n   - Nombre del usuario\n\n4. **lastName** (string, requerido):\n   - Apellido del usuario\n\n5. **role** (enum, requerido):\n   - Valores: SUPER_ADMIN | ADMIN | EDITOR | ACCOUNT_OWNER | MEMBER\n   - Debe ser un rol que el usuario autenticado puede crear\n\n6. **accountId** (string, condicional):\n   - **REQUERIDO** si role = MEMBER\n   - **PROHIBIDO** si role = ACCOUNT_OWNER (se crea con la cuenta)\n   - **PROHIBIDO** si role = ADMIN | EDITOR (empleados sin cuenta)\n   - **OPCIONAL** si role = SUPER_ADMIN\n\n**Respuestas:**\n- **201 Created:** Usuario creado exitosamente\n- **400 Bad Request:** Datos inválidos (password débil, email inválido, accountId incorrecto)\n- **401 Unauthorized:** No autenticado o token inválido/expirado\n- **403 Forbidden:** No tiene permisos para crear el rol especificado\n- **409 Conflict:** Email ya existe en el sistema\n- **429 Too Many Requests:** Excedido límite de 30 intentos en 60 segundos\n\n**Ejemplo de respuesta exitosa (201):**\n```json\n{\n  \"id\": \"clxxx...\",\n  \"email\": \"nuevo@ejemplo.com\",\n  \"firstName\": \"Nuevo\",\n  \"lastName\": \"Usuario\",\n  \"role\": \"MEMBER\",\n  \"status\": \"INVITED\",\n  \"accountId\": \"clyyyy...\",\n  \"createdAt\": \"2025-10-30T00:00:00.000Z\"\n}\n```\n\n**Ejemplo de respuesta de error (400) - Password débil:**\n```json\n{\n  \"statusCode\": 400,\n  \"message\": \"Password must include uppercase, lowercase, number and special character.\"\n}\n```\n\n**Ejemplo de respuesta de error (403):**\n```json\n{\n  \"statusCode\": 403,\n  \"message\": \"You are not allowed to create users with role SUPER_ADMIN\"\n}\n```\n\n**Ejemplo de respuesta de error (409):**\n```json\n{\n  \"statusCode\": 409,\n  \"message\": \"Email already exists\"\n}\n```\n\n**Ejemplos de uso por rol:**\n\n**1. SUPER_ADMIN creando ADMIN:**\n```json\n{\n  \"email\": \"admin@ejemplo.com\",\n  \"password\": \"Admin@Pass123\",\n  \"firstName\": \"Admin\",\n  \"lastName\": \"User\",\n  \"role\": \"ADMIN\"\n}\n```\n\n**2. ADMIN creando ACCOUNT_OWNER:**\n```json\n{\n  \"email\": \"owner@cliente.com\",\n  \"password\": \"Owner@Pass123\",\n  \"firstName\": \"Owner\",\n  \"lastName\": \"Cliente\",\n  \"role\": \"ACCOUNT_OWNER\"\n}\n```\n\n**3. ACCOUNT_OWNER creando MEMBER:**\n```json\n{\n  \"email\": \"member@cliente.com\",\n  \"password\": \"Member@Pass123\",\n  \"firstName\": \"Member\",\n  \"lastName\": \"User\",\n  \"role\": \"MEMBER\",\n  \"accountId\": \"ID_DE_LA_CUENTA_DEL_OWNER\"\n}\n```\n\n**Nota importante sobre passwords:**\nDespués de la Tarea #3, todas las contraseñas deben cumplir requisitos de complejidad robusta. Contraseñas simples como \"password\", \"12345678\" o \"Password1\" serán rechazadas con HTTP 400."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "_postman_observaciones": {
+    "version": "1.4.0",
+    "fecha_actualizacion": "2025-10-30",
+    "tareas_completadas": [
+      "Tarea #1: Constraint único de SUPER_ADMIN",
+      "Tarea #2: Rate limiting en autenticación y usuarios",
+      "Tarea #3: Validación robusta de complejidad de contraseñas",
+      "Tarea #4: Logout y revocación de tokens JWT con tokenVersion"
+    ],
+    "cambios_principales": [
+      "✅ Agregado endpoint POST /api/auth/logout (Tarea #4)",
+      "✅ Actualizado ejemplo de password en todos los requests (SecureP@ss123 cumple requisitos)",
+      "✅ Documentado rate limiting en todos los endpoints",
+      "✅ Agregadas respuestas HTTP 429 (Too Many Requests)",
+      "✅ Documentado mecanismo de revocación de tokens con tokenVersion",
+      "✅ Actualizado ejemplo de Create User con validaciones de password completas",
+      "✅ Agregadas descripciones detalladas de jerarquía de roles y permisos",
+      "✅ Incluidos ejemplos de respuestas exitosas y de error",
+      "✅ Documentados scripts de test automáticos en endpoints de autenticación"
+    ],
+    "rutas_validadas": {
+      "auth": {
+        "POST /api/auth/login": "✅ Validado - Rate limiting 5 req/60s",
+        "POST /api/auth/refresh": "✅ Validado - Rate limiting 10 req/60s",
+        "POST /api/auth/logout": "✅ NUEVO - Tarea #4 - Rate limiting 5 req/60s, requiere JWT"
+      },
+      "users": {
+        "GET /api/users/me": "✅ Validado - Todos los roles, Rate limiting 30 req/60s",
+        "GET /api/users": "✅ Validado - SUPER_ADMIN, ADMIN, ACCOUNT_OWNER, Rate limiting 30 req/60s",
+        "GET /api/users/:id": "✅ Validado - Todos con restricciones, Rate limiting 30 req/60s",
+        "POST /api/users": "✅ Validado - SUPER_ADMIN, ADMIN, ACCOUNT_OWNER, Rate limiting 30 req/60s"
+      }
+    },
+    "rate_limiting_resumen": {
+      "POST /api/auth/login": "5 req/60s por IP",
+      "POST /api/auth/refresh": "10 req/60s por IP",
+      "POST /api/auth/logout": "5 req/60s por IP",
+      "ALL /api/users/*": "30 req/60s por IP"
+    },
+    "notas_tecnicas": [
+      "Todos los endpoints están validados contra el código fuente actual (Auth.controller.ts y User.controller.ts)",
+      "Variables de colección se actualizan automáticamente al hacer login exitoso",
+      "tokenVersion se incrementa en cada logout, invalidando todos los tokens previos",
+      "Password validation requiere: 8+ chars, uppercase, lowercase, number, special char",
+      "Rate limiting se aplica por IP del cliente, no por usuario",
+      "Todos los endpoints de /users requieren autenticación JWT (JwtAuthGuard)"
+    ],
+    "mejoras_futuras_sugeridas": [
+      "Agregar ejemplos de respuesta como responses en cada request (formato Postman v2.1)",
+      "Crear carpeta de environment variables para dev/staging/prod",
+      "Agregar tests automatizados usando Newman CLI",
+      "Documentar flujo completo de registro de usuario (si se implementa en el futuro)"
+    ]
+  }
+}

@@ -1,0 +1,549 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator erd {
+  provider        = "prisma-erd-generator"
+  output          = "./erd/ERD.svg"
+  format          = "svg"
+  puppeteerConfig = "./puppeteer.config.json"
+}
+
+generator erd_mermaid {
+  provider = "prisma-erd-generator"
+  output   = "./erd/schema.md"
+  format   = "mermaid"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id              String              @id @default(cuid())
+  name            String              @unique
+  ownerId         String?             @unique /// Propietario de la cuenta (se asigna después de la creación)
+  createdBy       String /// Usuario que creó la cuenta (ADMIN/SUPER_ADMIN)
+  status          AccountStatus       @default(PENDING) /// Estado de la cuenta
+  isSystemAccount Boolean             @default(false) /// Flag que identifica cuentas del sistema (ej: Employees)
+  maxUsers        Int? /// Límite de usuarios permitidos para la cuenta (se asigna al aceptar invitación)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  owner           User?               @relation("AccountOwner", fields: [ownerId], references: [id])
+  creator         User                @relation("AccountCreator", fields: [createdBy], references: [id])
+  members         User[]              @relation("AccountMembers")
+  invitations     AccountInvitation[]
+  userInvitations UserInvitation[]
+
+  @@index([name])
+  @@index([isSystemAccount]) // Para filtrar cuentas de sistema vs clientes
+  @@index([createdAt]) // Para ordenar por fecha de creación
+  @@index([status]) // Para filtrar por estado de cuenta
+  @@index([createdBy]) // Para consultas de auditoría
+}
+
+model User {
+  id              String     @id @default(cuid())
+  email           String     @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  role            Role
+  status          UserStatus @default(ACTIVE)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  tokenVersion    Int        @default(0)
+  accountId       String?
+  ownedAccount    Account?   @relation("AccountOwner")
+  createdAccounts Account[]  @relation("AccountCreator")
+  account         Account?   @relation("AccountMembers", fields: [accountId], references: [id], onDelete: Cascade)
+
+  // Relaciones con documentos
+  createdDocuments         Document[]         @relation("DocumentCreator")
+  updatedDocuments         Document[]         @relation("DocumentUpdater")
+  publishedDocuments       Document[]         @relation("DocumentPublisher")
+  createdDocumentVersions  DocumentVersion[]  @relation("DocumentVersionCreator")
+  uploadedDocumentFiles    DocumentFile[]     @relation("DocumentFileUploader")
+  createdDocumentRelations DocumentRelation[] @relation("DocumentRelationCreator")
+
+  // Relaciones con search analytics
+  searchQueries SearchQuery[] @relation("UserSearchQueries")
+  documentViews DocumentView[] @relation("UserDocumentViews")
+
+  @@index([accountId])
+  @@index([role])
+  @@index([email])
+  @@index([status]) // Para filtrar usuarios por estado (ACTIVE, SUSPENDED, etc.)
+  @@index([accountId, role]) // Índice compuesto para consultas que filtran por cuenta y rol
+  @@index([createdAt]) // Para ordenar por fecha de creación
+}
+
+enum Role {
+  SUPER_ADMIN
+  ACCOUNT_OWNER
+  MEMBER
+  ADMIN
+  EDITOR
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+}
+
+enum AccountStatus {
+  PENDING // Cuenta creada, esperando configuración
+  ACTIVE // Cuenta activa y operativa
+  INACTIVE // Cuenta desactivada temporalmente
+  SUSPENDED // Cuenta suspendida por violación de términos
+}
+
+enum InvitationStatus {
+  PENDING // Invitación enviada, esperando aceptación
+  ACCEPTED // Invitación aceptada y procesada
+  EXPIRED // Invitación expirada
+  CANCELLED // Invitación cancelada por admin
+}
+
+model AccountInvitation {
+  id        String           @id @default(cuid())
+  email     String /// Email del usuario invitado a ser ACCOUNT_OWNER
+  token     String           @unique /// Token único de activación (UUID v4)
+  accountId String /// ID de la cuenta para la cual se invita al propietario
+  maxUsers  Int /// Límite de usuarios permitidos para la cuenta
+  expiresAt DateTime /// Fecha de expiración del token (7 días desde creación)
+  status    InvitationStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  account   Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([email])
+  @@index([accountId])
+  @@index([status])
+  @@index([expiresAt]) // Para limpiar tokens expirados
+  @@map("account_invitations")
+}
+
+model UserInvitation {
+  id        String           @id @default(cuid())
+  email     String /// Email del usuario invitado
+  firstName String /// Nombre del usuario invitado
+  lastName  String /// Apellido del usuario invitado
+  role      String /// Rol del usuario (MEMBER, EDITOR, ADMIN, SUPER_ADMIN)
+  token     String           @unique /// Token único de activación (UUID v4)
+  accountId String /// ID de la cuenta a la que se invita al usuario
+  expiresAt DateTime /// Fecha de expiración del token (7 días desde creación)
+  status    InvitationStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  account   Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([email])
+  @@index([accountId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("user_invitations")
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String
+  userEmail    String
+  userRole     String
+  action       String // CREATE, UPDATE, DELETE, ACCESS_DENIED
+  resource     String // ACCOUNT, USER, DOCUMENT
+  resourceId   String
+  resourceName String?
+  details      Json? // Datos adicionales (ej: campos modificados)
+  ipAddress    String?
+  userAgent    String?
+  success      Boolean  @default(true)
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([resource, resourceId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([success]) // Para filtrar logs exitosos vs fallidos
+  @@index([userId, createdAt]) // Índice compuesto para logs de un usuario ordenados por fecha
+  @@index([resource, action]) // Índice compuesto para consultas por tipo de recurso y acción
+  // PERFORMANCE FIX (P2.9): Additional composite indexes for common query patterns
+  @@index([userId, action]) // Para consultas de acciones específicas de un usuario
+  @@index([resource, createdAt]) // Para logs de un recurso ordenados por fecha
+  @@index([success, createdAt]) // Para logs de éxito/fallo ordenados por fecha
+  @@map("audit_logs")
+}
+
+// ============================================
+// ENUMS PARA DOCUMENTOS LEGALES
+// ============================================
+
+enum DocumentType {
+  CONSTITUCION // Constitución Nacional (jerarquía 1)
+  TRATADO_INTERNACIONAL // Tratados internacionales (jerarquía 2)
+  LEY_ORGANICA // Leyes orgánicas (jerarquía 3)
+  LEY_ORDINARIA // Leyes ordinarias (jerarquía 4)
+  DECRETO_LEY // Decretos con fuerza de ley (jerarquía 5)
+  DECRETO // Decretos ejecutivos (jerarquía 6)
+  REGLAMENTO // Reglamentos (jerarquía 7)
+  ORDENANZA // Ordenanzas municipales (jerarquía 8)
+  RESOLUCION // Resoluciones (jerarquía 9)
+  ACUERDO // Acuerdos (jerarquía 10)
+  CIRCULAR // Circulares (jerarquía 11)
+  DIRECTIVA // Directivas (jerarquía 12)
+  OTRO // Otros tipos (jerarquía 13)
+}
+
+enum DocumentStatus {
+  DRAFT // Borrador - documento en creación
+  IN_REVIEW // En revisión - esperando validación
+  PUBLISHED // Publicado - visible para usuarios
+  ARCHIVED // Archivado - no visible pero conservado
+  DEROGATED // Derogado - norma sin vigencia legal
+}
+
+enum DocumentRelationType {
+  DEROGA // El documento deroga (anula) otro
+  MODIFICA // El documento modifica otro
+  COMPLEMENTA // El documento complementa otro
+  REGLAMENTA // El documento reglamenta otro
+  SUSTITUYE // El documento sustituye otro
+  ACLARA // El documento aclara otro
+  RATIFICA // El documento ratifica otro
+  INCORPORA // El documento incorpora otro
+  DESARROLLA // El documento desarrolla otro
+}
+
+enum ProcessingStatus {
+  PENDING // Esperando procesamiento
+  PROCESSING // En proceso de extracción/OCR
+  COMPLETED // Procesamiento completado
+  FAILED // Procesamiento fallido
+  MANUAL // Ingreso manual (sin procesamiento)
+}
+
+enum DocumentScope {
+  NACIONAL // Ámbito nacional
+  REGIONAL // Ámbito regional/departamental
+  MUNICIPAL // Ámbito municipal
+  LOCAL // Ámbito local
+  INTERNACIONAL // Ámbito internacional
+}
+
+// ============================================
+// MODELO PRINCIPAL DE DOCUMENTOS
+// ============================================
+
+model Document {
+  id String @id @default(cuid())
+
+  // Identificación del documento
+  title          String // Título del documento
+  documentNumber String? // Número oficial del documento (ej: "Ley 123 de 2024")
+  abbreviation   String? // Abreviatura (ej: "L-123/24")
+  type           DocumentType // Tipo de documento legal
+
+  // Clasificación y jerarquía
+  hierarchyLevel Int // Nivel jerárquico (1-13, calculado del DocumentType)
+  scope          DocumentScope @default(NACIONAL) // Ámbito de aplicación
+  subject        String? // Materia o tema del documento
+  tags           String[] // Etiquetas para búsqueda (array de strings)
+
+  // Entidad emisora
+  issuingEntity     String // Entidad que emite el documento
+  issuingEntityType String? // Tipo de entidad (Congreso, Presidencia, Alcaldía, etc.)
+
+  // Fechas importantes
+  issueDate       DateTime? // Fecha de emisión
+  publicationDate DateTime? // Fecha de publicación oficial
+  effectiveDate   DateTime? // Fecha de entrada en vigencia
+  expirationDate  DateTime? // Fecha de expiración (si aplica)
+
+  // Vigencia
+  isActive Boolean        @default(true) // Si está vigente legalmente
+  status   DocumentStatus @default(DRAFT) // Estado en el flujo de trabajo
+
+  // Contenido
+  summary      String? @db.Text // Resumen ejecutivo
+  fullText     String? @db.Text // Texto completo del documento
+  observations String? @db.Text // Observaciones o notas del editor
+
+  // Metadatos para LLM/RAG
+  embedding Unsupported("vector(1536)")? // Vector de embeddings para búsqueda semántica (pgvector)
+  keywords  String[] // Palabras clave extraídas
+
+  // Auditoría y control
+  createdBy   String // Usuario que creó el documento (EDITOR)
+  updatedBy   String? // Último usuario que modificó
+  publishedBy String? // Usuario que publicó
+  publishedAt DateTime? // Fecha de publicación en sistema
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relaciones
+  creator   User  @relation("DocumentCreator", fields: [createdBy], references: [id])
+  updater   User? @relation("DocumentUpdater", fields: [updatedBy], references: [id])
+  publisher User? @relation("DocumentPublisher", fields: [publishedBy], references: [id])
+
+  versions      DocumentVersion[] // Historial de versiones
+  sections      DocumentSection[] // Secciones/artículos del documento
+  files         DocumentFile[] // Archivos asociados (PDFs, etc.)
+  metadata      DocumentMetadata[] // Metadata adicional flexible
+  relationsFrom DocumentRelation[] @relation("DocumentFrom") // Relaciones que origina
+  relationsTo   DocumentRelation[] @relation("DocumentTo") // Relaciones que recibe
+  views         DocumentView[] @relation("DocumentViews") // Vistas/visitas al documento
+
+  @@index([type])
+  @@index([status])
+  @@index([isActive])
+  @@index([hierarchyLevel])
+  @@index([issueDate])
+  @@index([publicationDate])
+  @@index([createdBy])
+  @@index([createdAt])
+  @@index([documentNumber])
+  @@index([scope])
+  @@index([type, isActive]) // Documentos activos por tipo
+  @@index([status, createdBy]) // Documentos del editor
+  @@map("documents")
+}
+
+// ============================================
+// VERSIONADO DE DOCUMENTOS
+// ============================================
+
+model DocumentVersion {
+  id            String @id @default(cuid())
+  documentId    String // Documento al que pertenece
+  versionNumber Int // Número de versión (1, 2, 3...)
+
+  // Snapshot del contenido en esta versión
+  title    String
+  fullText String? @db.Text
+  summary  String? @db.Text
+
+  // Información de la versión
+  changeLog String? @db.Text // Descripción de cambios
+  reason    String? // Razón del cambio (reforma, corrección, etc.)
+
+  // Auditoría
+  createdBy String // Usuario que creó esta versión
+  createdAt DateTime @default(now())
+
+  // Relaciones
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  creator  User     @relation("DocumentVersionCreator", fields: [createdBy], references: [id])
+
+  @@unique([documentId, versionNumber]) // No puede haber versiones duplicadas
+  @@index([documentId])
+  @@index([createdAt])
+  @@index([versionNumber])
+  @@map("document_versions")
+}
+
+// ============================================
+// SECCIONES/ARTÍCULOS DEL DOCUMENTO
+// ============================================
+
+model DocumentSection {
+  id         String @id @default(cuid())
+  documentId String // Documento al que pertenece
+
+  // Identificación de la sección
+  sectionType   String // Tipo: "ARTICULO", "CAPITULO", "TITULO", "SECCION", "PARAGRAFO"
+  sectionNumber String? // Número (ej: "1", "I", "A")
+  title         String? // Título de la sección
+  content       String  @db.Text // Contenido de la sección
+
+  // Jerarquía dentro del documento
+  parentId String? // ID de la sección padre (para jerarquías)
+  order    Int // Orden de aparición en el documento
+  level    Int     @default(0) // Nivel de anidación (0 = raíz)
+
+  // Metadatos para RAG
+  embedding Unsupported("vector(1536)")? // Vector de embeddings para esta sección
+
+  // Auditoría
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  document Document          @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  parent   DocumentSection?  @relation("SectionHierarchy", fields: [parentId], references: [id])
+  children DocumentSection[] @relation("SectionHierarchy")
+
+  @@index([documentId])
+  @@index([order])
+  @@index([parentId])
+  @@index([documentId, order]) // Para ordenar secciones de un documento
+  @@map("document_sections")
+}
+
+// ============================================
+// ARCHIVOS ASOCIADOS (PDFs)
+// ============================================
+
+model DocumentFile {
+  id         String @id @default(cuid())
+  documentId String // Documento al que pertenece
+
+  // Información del archivo
+  fileName    String // Nombre original del archivo
+  fileSize    Int // Tamaño en bytes
+  mimeType    String // Tipo MIME (application/pdf)
+  storagePath String // Ruta en el sistema de almacenamiento
+  storageUrl  String? // URL pública (si aplica)
+
+  // Metadata del archivo
+  fileHash  String // Hash SHA-256 para integridad
+  pageCount Int? // Número de páginas (para PDFs)
+
+  // Procesamiento de texto
+  processingStatus ProcessingStatus @default(PENDING)
+  extractedText    String?          @db.Text // Texto extraído (nativo o OCR)
+  processingError  String?          @db.Text // Error si el procesamiento falló
+  processedAt      DateTime? // Fecha de procesamiento
+
+  // Tipo de archivo
+  isPrimary Boolean @default(false) // Si es el archivo principal
+  fileType  String  @default("SOURCE") // SOURCE, PROCESSED, ATTACHMENT
+
+  // Auditoría
+  uploadedBy String // Usuario que subió el archivo
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relaciones
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  uploader User     @relation("DocumentFileUploader", fields: [uploadedBy], references: [id])
+
+  @@index([documentId])
+  @@index([processingStatus])
+  @@index([isPrimary])
+  @@index([uploadedBy])
+  @@index([createdAt])
+  @@map("document_files")
+}
+
+// ============================================
+// RELACIONES ENTRE DOCUMENTOS
+// ============================================
+
+model DocumentRelation {
+  id String @id @default(cuid())
+
+  // Documentos relacionados
+  fromDocumentId String // Documento origen
+  toDocumentId   String // Documento destino
+
+  // Tipo de relación
+  relationType DocumentRelationType // Tipo de relación
+
+  // Detalles de la relación
+  description      String?  @db.Text // Descripción de la relación
+  affectedArticles String[] // Artículos afectados (array)
+
+  // Auditoría
+  createdBy String // Usuario que creó la relación
+  createdAt DateTime @default(now())
+
+  // Relaciones
+  fromDocument Document @relation("DocumentFrom", fields: [fromDocumentId], references: [id], onDelete: Cascade)
+  toDocument   Document @relation("DocumentTo", fields: [toDocumentId], references: [id], onDelete: Cascade)
+  creator      User     @relation("DocumentRelationCreator", fields: [createdBy], references: [id])
+
+  @@unique([fromDocumentId, toDocumentId, relationType]) // Evitar relaciones duplicadas
+  @@index([fromDocumentId])
+  @@index([toDocumentId])
+  @@index([relationType])
+  @@index([createdBy])
+  @@map("document_relations")
+}
+
+// ============================================
+// METADATA ADICIONAL FLEXIBLE
+// ============================================
+
+model DocumentMetadata {
+  id         String @id @default(cuid())
+  documentId String // Documento al que pertenece
+
+  // Par clave-valor
+  key      String @db.Text // Nombre del metadato (ej: "gaceta_oficial", "libro", "tomo")
+  value    String @db.Text // Valor del metadato
+  dataType String @default("string") // Tipo de dato: string, number, date, boolean, json
+
+  // Auditoría
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, key]) // Un documento no puede tener metadatos duplicados
+  @@index([documentId])
+  @@index([key])
+  @@map("document_metadata")
+}
+
+// ============================================
+// SEARCH ANALYTICS MODELS
+// ============================================
+
+model SearchQuery {
+  id String @id @default(cuid())
+
+  // Usuario
+  userId String
+  user   User   @relation("UserSearchQueries", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Query información
+  query String @db.Text
+
+  // Resultados
+  totalResults   Int     @default(0)
+  hasResults     Boolean @default(true)
+  executionTimeMs Int    @default(0)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  // Índices para performance de queries analytics
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@index([hasResults])
+  @@map("search_queries")
+}
+
+model DocumentView {
+  id String @id @default(cuid())
+
+  // Documento visitado
+  documentId String
+  document   Document @relation("DocumentViews", fields: [documentId], references: [id], onDelete: Cascade)
+
+  // Usuario que visitó (opcional si queremos analytics por usuario)
+  userId String?
+  user   User?   @relation("UserDocumentViews", fields: [userId], references: [id], onDelete: SetNull)
+
+  // Metadata de la visita
+  ipAddress String? @db.VarChar(45) // IPv4/IPv6
+  userAgent String? @db.Text
+  referer   String? @db.Text // De dónde vino (search, direct, etc.)
+
+  // Timestamp
+  viewedAt DateTime @default(now())
+
+  // Índices para analytics
+  @@index([documentId])
+  @@index([documentId, viewedAt])
+  @@index([userId])
+  @@index([viewedAt])
+  @@map("document_views")
+}

@@ -1,0 +1,29 @@
+{
+  "name": "asistencialegal-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo AsistenciaLegal - Backend NestJS + Frontend Next.js",
+  "packageManager": "npm@10.2.4",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "kill-dev": "bash $PWD/scripts/kill-dev.sh"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.17.1"
+  }
+}

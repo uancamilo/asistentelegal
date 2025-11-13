@@ -1,0 +1,506 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "summary": "Login de usuario",
+        "description": "Autentica un usuario y retorna tokens JWT",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login exitoso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales inválidas"
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "summary": "Renovar tokens",
+        "description": "Renueva los tokens usando un refresh token válido enviado en el body",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tokens renovados exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshTokenResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refresh token inválido o expirado"
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/users": {
+      "post": {
+        "operationId": "UserController_create",
+        "summary": "Crear usuario",
+        "description": "Crea un nuevo usuario. SUPER_ADMIN puede crear todos los roles, ADMIN puede crear ACCOUNT_OWNER, ACCOUNT_OWNER puede crear MEMBER",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Usuario creado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateUserResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos"
+          },
+          "403": {
+            "description": "No tiene permisos para crear este rol"
+          },
+          "409": {
+            "description": "Email ya existe"
+          }
+        },
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "UserController_list",
+        "summary": "Listar usuarios",
+        "description": "Lista usuarios según permisos. SUPER_ADMIN ve todos, ADMIN ve solo clientes, ACCOUNT_OWNER ve su cuenta",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Lista de usuarios",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListUsersResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No tiene permisos para listar usuarios"
+          }
+        },
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/users/me": {
+      "get": {
+        "operationId": "UserController_getProfile",
+        "summary": "Obtener perfil propio",
+        "description": "Obtiene el perfil del usuario autenticado",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Perfil del usuario",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetUserResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "operationId": "UserController_getById",
+        "summary": "Obtener usuario por ID",
+        "description": "Obtiene un usuario específico. Los permisos se verifican según el rol",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usuario encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetUserResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No tiene permisos para ver este usuario"
+          },
+          "404": {
+            "description": "Usuario no encontrado"
+          }
+        },
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "AsistenciaLegal API",
+    "description": "API REST para el sistema de gestión legal con autenticación JWT y RBAC",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "auth",
+      "description": "Endpoints de autenticación"
+    },
+    {
+      "name": "users",
+      "description": "Gestión de usuarios"
+    }
+  ],
+  "servers": [
+    {
+      "url": "http://localhost:3000/api",
+      "description": "Development server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "JWT-auth": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "name": "JWT",
+        "description": "Enter JWT token",
+        "in": "header"
+      }
+    },
+    "schemas": {
+      "LoginRequestDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "admin@email.com",
+            "description": "Email del usuario"
+          },
+          "password": {
+            "type": "string",
+            "example": "admin123",
+            "description": "Contraseña del usuario (mínimo 8 caracteres)",
+            "minLength": 8
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "LoginResponseDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "JWT access token (válido por 15 minutos)"
+          },
+          "refreshToken": {
+            "type": "string",
+            "description": "JWT refresh token (válido por 7 días)"
+          },
+          "user": {
+            "type": "object",
+            "description": "Datos del usuario autenticado",
+            "example": {
+              "id": "cuid123456",
+              "email": "admin@email.com",
+              "firstName": "Super",
+              "lastName": "Admin",
+              "role": "SUPER_ADMIN",
+              "status": "ACTIVE"
+            }
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "user"
+        ]
+      },
+      "RefreshTokenRequestDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "JWT refresh token",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWdyaDFmMTUwMDAxdzI3Z3h6a3FkYW1lIiwiZW1haWwiOiJhZG1pbkBlbWFpbC5jb20iLCJyb2xlIjoiU1VQRVJfQURNSU4iLCJpYXQiOjE3NjA4MTAwMDgsImV4cCI6MTc2MTQxNDgwOH0.OuQ5kDqdSIMPd5OgvGNSHdOf5c2T4CgHhkyfR5nD6SI"
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "RefreshTokenResponseDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "Nuevo JWT access token (válido por 15 minutos)"
+          },
+          "refreshToken": {
+            "type": "string",
+            "description": "Nuevo JWT refresh token (válido por 7 días)"
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken"
+        ]
+      },
+      "CreateUserRequestDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "usuario@ejemplo.com",
+            "description": "Email del usuario"
+          },
+          "password": {
+            "type": "string",
+            "example": "Password123!",
+            "description": "Contraseña del usuario (mínimo 8 caracteres)",
+            "minLength": 8
+          },
+          "firstName": {
+            "type": "string",
+            "example": "Juan",
+            "description": "Nombre del usuario"
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Pérez",
+            "description": "Apellido del usuario"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "SUPER_ADMIN",
+              "ADMIN",
+              "EDITOR",
+              "ACCOUNT_OWNER",
+              "MEMBER"
+            ],
+            "example": "MEMBER",
+            "description": "Rol del usuario. SUPER_ADMIN puede crear todos, ADMIN puede crear ACCOUNT_OWNER, ACCOUNT_OWNER puede crear MEMBER"
+          },
+          "accountId": {
+            "type": "string",
+            "example": "cuid123456",
+            "description": "ID de la cuenta (requerido solo para MEMBER)"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "firstName",
+          "lastName",
+          "role"
+        ]
+      },
+      "CreateUserResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "SUPER_ADMIN",
+              "ADMIN",
+              "EDITOR",
+              "ACCOUNT_OWNER",
+              "MEMBER"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "firstName",
+          "lastName",
+          "role",
+          "status",
+          "accountId",
+          "createdAt"
+        ]
+      },
+      "GetUserResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "firstName",
+          "lastName",
+          "fullName",
+          "role",
+          "status",
+          "accountId",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ListUsersResponseDto": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GetUserResponseDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "users",
+          "total"
+        ]
+      }
+    }
+  }
+}
