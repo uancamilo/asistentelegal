@@ -19,12 +19,15 @@ import { RateLimitingModule } from '../../shared/rate-limiting/rate-limiting.mod
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('jwt.secret'),
-        signOptions: {
-          expiresIn: configService.get<string>('jwt.expiresIn'),
-        },
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const expiresIn = configService.getOrThrow<string>('jwt.expiresIn');
+        return {
+          secret: configService.getOrThrow<string>('jwt.secret'),
+          signOptions: {
+            expiresIn: expiresIn as any, // Cast to avoid type error with string literals
+          },
+        };
+      },
       inject: [ConfigService],
     }),
     UserModule, // Para acceder a USER_REPOSITORY

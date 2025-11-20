@@ -22,3 +22,12 @@ informe-general.md
 analisis.md
 plandeaccion.md
 ANALISIS.md
+DEPLOYMENT_READINESS_REPORT.md
+SECRETS_ROTATION_REPORT.md
+CORS_PRODUCTION_GUIDE.md
+NETWORK_ACCESS_CONFIG.md
+conversation_backup.txt
+
+# PDF test files
+*.pdf
+*.backup
