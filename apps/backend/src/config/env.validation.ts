@@ -80,6 +80,9 @@ class EnvironmentVariables {
   @IsString()
   CORS_ORIGIN: string = 'http://localhost:3000';
 
+  @IsString()
+  FRONTEND_URL: string = 'http://localhost:3000';
+
   // Redis Configuration (Optional)
   // If not provided, caching and rate limiting will use in-memory fallback
   @IsOptional()

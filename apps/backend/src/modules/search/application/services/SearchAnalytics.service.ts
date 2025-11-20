@@ -53,32 +53,15 @@ export class SearchAnalyticsService {
   /**
    * Obtener top queries más populares
    */
-  async getTopQueries(
-    limit: number = 10,
-    days?: number,
-    startDate?: string,
-    endDate?: string,
-  ) {
+  async getTopQueries(limit: number = 10, days?: number, startDate?: string, endDate?: string) {
     // Construir filtro de fecha
     const dateFilter: any = {};
     if (startDate && endDate) {
       // Parsear fechas como locales (YYYY-MM-DD) sin conversión de zona horaria
-      const [startYear, startMonth, startDay] = startDate
-        .split('-')
-        .map((v) => parseInt(v, 10));
-      const start = new Date(
-        startYear!,
-        startMonth! - 1,
-        startDay!,
-        0,
-        0,
-        0,
-        0,
-      );
+      const [startYear, startMonth, startDay] = startDate.split('-').map((v) => parseInt(v, 10));
+      const start = new Date(startYear!, startMonth! - 1, startDay!, 0, 0, 0, 0);
 
-      const [endYear, endMonth, endDay] = endDate
-        .split('-')
-        .map((v) => parseInt(v, 10));
+      const [endYear, endMonth, endDay] = endDate.split('-').map((v) => parseInt(v, 10));
       const end = new Date(endYear!, endMonth! - 1, endDay!, 23, 59, 59, 999);
 
       dateFilter.gte = start;
@@ -111,7 +94,7 @@ export class SearchAnalyticsService {
 
     // Obtener la última fecha de búsqueda para cada query
     const resultsWithLastSearched = await Promise.all(
-      groupedResults.map(async (item) => {
+      groupedResults.map(async (item: any) => {
         const lastSearch = await this.prisma.searchQuery.findFirst({
           where: {
             query: item.query,
@@ -129,7 +112,7 @@ export class SearchAnalyticsService {
           ...item,
           lastSearched: lastSearch?.createdAt,
         };
-      }),
+      })
     );
 
     return resultsWithLastSearched;
@@ -142,28 +125,16 @@ export class SearchAnalyticsService {
     limit: number = 20,
     days?: number,
     startDate?: string,
-    endDate?: string,
+    endDate?: string
   ) {
     // Construir filtro de fecha
     const dateFilter: any = {};
     if (startDate && endDate) {
       // Parsear fechas como locales (YYYY-MM-DD) sin conversión de zona horaria
-      const [startYear, startMonth, startDay] = startDate
-        .split('-')
-        .map((v) => parseInt(v, 10));
-      const start = new Date(
-        startYear!,
-        startMonth! - 1,
-        startDay!,
-        0,
-        0,
-        0,
-        0,
-      );
+      const [startYear, startMonth, startDay] = startDate.split('-').map((v) => parseInt(v, 10));
+      const start = new Date(startYear!, startMonth! - 1, startDay!, 0, 0, 0, 0);
 
-      const [endYear, endMonth, endDay] = endDate
-        .split('-')
-        .map((v) => parseInt(v, 10));
+      const [endYear, endMonth, endDay] = endDate.split('-').map((v) => parseInt(v, 10));
       const end = new Date(endYear!, endMonth! - 1, endDay!, 23, 59, 59, 999);
 
       dateFilter.gte = start;
@@ -193,7 +164,7 @@ export class SearchAnalyticsService {
 
     // Obtener la última fecha de búsqueda para cada query
     const resultsWithLastSearched = await Promise.all(
-      groupedResults.map(async (item) => {
+      groupedResults.map(async (item: any) => {
         const lastSearch = await this.prisma.searchQuery.findFirst({
           where: {
             query: item.query,
@@ -212,7 +183,7 @@ export class SearchAnalyticsService {
           ...item,
           lastSearched: lastSearch?.createdAt,
         };
-      }),
+      })
     );
 
     return resultsWithLastSearched;
@@ -247,29 +218,17 @@ export class SearchAnalyticsService {
     limit: number = 10,
     days?: number,
     startDate?: string,
-    endDate?: string,
+    endDate?: string
   ) {
     const where: any = {};
 
     // Construir filtro de fecha
     if (startDate && endDate) {
       // Parsear fechas como locales (YYYY-MM-DD) sin conversión de zona horaria
-      const [startYear, startMonth, startDay] = startDate
-        .split('-')
-        .map((v) => parseInt(v, 10));
-      const start = new Date(
-        startYear!,
-        startMonth! - 1,
-        startDay!,
-        0,
-        0,
-        0,
-        0,
-      );
+      const [startYear, startMonth, startDay] = startDate.split('-').map((v) => parseInt(v, 10));
+      const start = new Date(startYear!, startMonth! - 1, startDay!, 0, 0, 0, 0);
 
-      const [endYear, endMonth, endDay] = endDate
-        .split('-')
-        .map((v) => parseInt(v, 10));
+      const [endYear, endMonth, endDay] = endDate.split('-').map((v) => parseInt(v, 10));
       const end = new Date(endYear!, endMonth! - 1, endDay!, 23, 59, 59, 999);
 
       where.viewedAt = {
@@ -298,7 +257,7 @@ export class SearchAnalyticsService {
 
     // Obtener información de los documentos y última fecha de visita
     const documentsWithInfo = await Promise.all(
-      topDocuments.map(async (item) => {
+      topDocuments.map(async (item: any) => {
         const document = await this.prisma.document.findUnique({
           where: { id: item.documentId },
           select: {
@@ -331,7 +290,7 @@ export class SearchAnalyticsService {
           viewCount: item._count.documentId,
           lastViewed: lastView?.viewedAt,
         };
-      }),
+      })
     );
 
     return documentsWithInfo;
@@ -340,32 +299,15 @@ export class SearchAnalyticsService {
   /**
    * Obtener historial completo de una búsqueda específica
    */
-  async getQueryHistory(
-    query: string,
-    days?: number,
-    startDate?: string,
-    endDate?: string,
-  ) {
+  async getQueryHistory(query: string, days?: number, startDate?: string, endDate?: string) {
     // Construir filtro de fecha
     const dateFilter: any = {};
     if (startDate && endDate) {
       // Parsear fechas como locales (YYYY-MM-DD) sin conversión de zona horaria
-      const [startYear, startMonth, startDay] = startDate
-        .split('-')
-        .map((v) => parseInt(v, 10));
-      const start = new Date(
-        startYear!,
-        startMonth! - 1,
-        startDay!,
-        0,
-        0,
-        0,
-        0,
-      );
+      const [startYear, startMonth, startDay] = startDate.split('-').map((v) => parseInt(v, 10));
+      const start = new Date(startYear!, startMonth! - 1, startDay!, 0, 0, 0, 0);
 
-      const [endYear, endMonth, endDay] = endDate
-        .split('-')
-        .map((v) => parseInt(v, 10));
+      const [endYear, endMonth, endDay] = endDate.split('-').map((v) => parseInt(v, 10));
       const end = new Date(endYear!, endMonth! - 1, endDay!, 23, 59, 59, 999);
 
       dateFilter.gte = start;

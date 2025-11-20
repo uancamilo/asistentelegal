@@ -1,5 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Allow dev access from local network IPs (for HMR and development)
+  // NOTE: allowedDevOrigins doesn't support wildcards, so we generate IPs for common subnet
+  // This generates all IPs in the 192.168.0.x and 192.168.1.x ranges
+  allowedDevOrigins: process.env.NODE_ENV === 'development'
+    ? [
+        // Localhost
+        'localhost',
+        '127.0.0.1',
+        // Generate 192.168.0.0-255 (subnet 0)
+        ...Array.from({ length: 256 }, (_, i) => `192.168.0.${i}`),
+        // Generate 192.168.1.0-255 (subnet 1)
+        ...Array.from({ length: 256 }, (_, i) => `192.168.1.${i}`),
+        // Add more subnets if needed (uncomment the ones you use)
+        // ...Array.from({ length: 256 }, (_, i) => `192.168.2.${i}`),
+        // ...Array.from({ length: 256 }, (_, i) => `10.0.0.${i}`),
+      ]
+    : [],
+
   // Security Headers - Applied in all environments
   async headers() {
     return [
@@ -8,31 +26,31 @@ const nextConfig = {
         headers: [
           {
             key: 'X-DNS-Prefetch-Control',
-            value: 'on'
+            value: 'on',
           },
           {
             key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload'
+            value: 'max-age=63072000; includeSubDomains; preload',
           },
           {
             key: 'X-Frame-Options',
-            value: 'DENY'
+            value: 'DENY',
           },
           {
             key: 'X-Content-Type-Options',
-            value: 'nosniff'
+            value: 'nosniff',
           },
           {
             key: 'X-XSS-Protection',
-            value: '1; mode=block'
+            value: '1; mode=block',
           },
           {
             key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin'
+            value: 'strict-origin-when-cross-origin',
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()'
+            value: 'camera=(), microphone=(), geolocation=()',
           },
           {
             key: 'Content-Security-Policy',
@@ -49,9 +67,15 @@ const nextConfig = {
                 ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
                 : "script-src 'self'";
 
-              const styleSrc = isDev
-                ? "style-src 'self' 'unsafe-inline'"
-                : "style-src 'self'";
+              const styleSrc = isDev ? "style-src 'self' 'unsafe-inline'" : "style-src 'self'";
+
+              // In development, allow connections from local network for HMR
+              // CSP doesn't support wildcards in the middle of IPs, so we:
+              // 1. Allow ws: and http: for localhost in dev
+              // 2. In production, CSP will be strict with only self and API URL
+              const connectSrc = isDev
+                ? `connect-src 'self' ${baseApiUrl} ws: http:`
+                : `connect-src 'self' ${baseApiUrl}`;
 
               return [
                 "default-src 'self'",
@@ -59,13 +83,13 @@ const nextConfig = {
                 styleSrc,
                 "img-src 'self' data: https:",
                 "font-src 'self' data:",
-                `connect-src 'self' ${baseApiUrl}`,
+                connectSrc,
                 "frame-ancestors 'none'",
                 "base-uri 'self'",
-                "form-action 'self'"
+                "form-action 'self'",
               ].join('; ');
-            })()
-          }
+            })(),
+          },
         ],
       },
     ];
@@ -75,14 +99,13 @@ const nextConfig = {
   async rewrites() {
     // Only use rewrites in development
     if (process.env.NODE_ENV === 'development') {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-      // Remove trailing /api if present to avoid duplication
-      const baseUrl = apiUrl.replace(/\/api\/?$/, '');
+      // Use BACKEND_URL env var or default to localhost
+      const backendUrl = process.env.BACKEND_URL || 'http://localhost:8080';
 
       return [
         {
           source: '/api/:path*',
-          destination: `${baseUrl}/api/:path*`,
+          destination: `${backendUrl}/api/:path*`,
         },
       ];
     }

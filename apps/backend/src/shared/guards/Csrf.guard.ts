@@ -35,10 +35,29 @@ export class CsrfGuard implements CanActivate {
     // Normalizar: remover trailing slash y convertir a URL
     const normalizedOrigin = new URL(origin).origin;
 
-    // Verificar que el origen coincida con alguno de los permitidos
+    // Verificar que el origen coincida con alguno de los permitidos (exact match o wildcard pattern)
     const isAllowed = this.allowedOrigins.some(allowedOrigin => {
-      const normalizedAllowed = new URL(allowedOrigin).origin;
-      return normalizedOrigin === normalizedAllowed;
+      // Exact match
+      try {
+        const normalizedAllowed = new URL(allowedOrigin).origin;
+        if (normalizedOrigin === normalizedAllowed) {
+          return true;
+        }
+      } catch (e) {
+        // Si allowedOrigin tiene wildcard, new URL() puede fallar
+        // Continuar con pattern matching
+      }
+
+      // Wildcard pattern matching (e.g., http://192.168.0.*:3000)
+      if (allowedOrigin.includes('*')) {
+        const pattern = allowedOrigin
+          .replace(/[.+?^${}()|[\]\\]/g, '\\$&') // Escape special regex chars
+          .replace(/\*/g, '.*'); // Replace * with .*
+        const regex = new RegExp(`^${pattern}$`);
+        return regex.test(normalizedOrigin);
+      }
+
+      return false;
     });
 
     if (!isAllowed) {

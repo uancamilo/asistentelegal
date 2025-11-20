@@ -41,7 +41,7 @@ export class EmailService {
     const { to, accountName, inviterName, token, expiresAt } = params;
 
     // URL del frontend (desde variable de entorno)
-    const frontendUrl = process.env['CORS_ORIGIN'] || 'http://localhost:3000';
+    const frontendUrl = process.env['FRONTEND_URL'] || 'http://localhost:3000';
     const activationLink = `${frontendUrl}/activate?token=${token}`;
 
     // Formato de la fecha de expiración
@@ -121,7 +121,7 @@ Tu cuenta ha sido activada exitosamente.
 
 Ya puedes acceder al sistema y comenzar a gestionar tu cuenta.
 
-  🔗 Iniciar sesión: ${process.env['CORS_ORIGIN'] || 'http://localhost:3000'}/login
+  🔗 Iniciar sesión: ${process.env['FRONTEND_URL'] || 'http://localhost:3000'}/login
 
 ---
 AsistenciaLegal - Sistema de Gestión
@@ -151,7 +151,7 @@ AsistenciaLegal - Sistema de Gestión
     } = params;
 
     // URL del frontend (desde variable de entorno)
-    const frontendUrl = process.env['CORS_ORIGIN'] || 'http://localhost:3000';
+    const frontendUrl = process.env['FRONTEND_URL'] || 'http://localhost:3000';
     const activationLink = `${frontendUrl}/activate?token=${token}`;
 
     // Formato de la fecha de expiración
