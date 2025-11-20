@@ -75,14 +75,12 @@ const nextConfig = {
   async rewrites() {
     // Only use rewrites in development
     if (process.env.NODE_ENV === 'development') {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-      // Remove trailing /api if present to avoid duplication
-      const baseUrl = apiUrl.replace(/\/api\/?$/, '');
+      const backendUrl = process.env.BACKEND_URL || 'http://localhost:8080';
 
       return [
         {
           source: '/api/:path*',
-          destination: `${baseUrl}/api/:path*`,
+          destination: `${backendUrl}/api/:path*`,
         },
       ];
     }
