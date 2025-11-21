@@ -2,9 +2,8 @@ services:
   - type: web
     name: asistencia-legal-api
     runtime: node
-    rootDir: apps/backend
-    buildCommand: cd ../.. && npm install && cd apps/backend && npx prisma generate && npm run build
-    startCommand: npx prisma migrate deploy && npm run start:prod
+    buildCommand: npm install && cd apps/backend && npx prisma generate && npm run build
+    startCommand: cd apps/backend && npx prisma migrate deploy && npm run start:prod
     envVars:
       - key: NODE_ENV
         value: production
