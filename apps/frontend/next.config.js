@@ -42,16 +42,10 @@ const nextConfig = {
               const baseApiUrl = apiUrl.replace(/\/api\/?$/, '');
               const isDev = process.env.NODE_ENV === 'development';
 
-              // SECURITY FIX (P2.6): Environment-specific CSP
-              // Development: Allow unsafe-eval and unsafe-inline for HMR and Fast Refresh
-              // Production: Strict CSP without unsafe directives (XSS protection)
-              const scriptSrc = isDev
-                ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
-                : "script-src 'self'";
-
-              const styleSrc = isDev
-                ? "style-src 'self' 'unsafe-inline'"
-                : "style-src 'self'";
+              // Next.js requires unsafe-inline for styles and unsafe-eval for scripts in production
+              // This is due to how Next.js injects styles and handles hydration
+              const scriptSrc = "script-src 'self' 'unsafe-eval' 'unsafe-inline'";
+              const styleSrc = "style-src 'self' 'unsafe-inline'";
 
               return [
                 "default-src 'self'",
