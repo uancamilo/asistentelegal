@@ -50,12 +50,12 @@ export class AuthController {
     const result = await this.loginUseCase.execute(loginDto, ipAddress, userAgent);
 
     // Establecer tokens como HttpOnly cookies con configuración segura
-    // SECURITY: Use sameSite 'strict' in production, 'lax' in development
-    // Development uses 'lax' to allow cookies between localhost:3000 (frontend) and localhost:8080 (backend)
-    // For development with HTTPS, set COOKIE_SECURE=true in .env
+    // SECURITY: Use sameSite 'none' for cross-origin (Vercel frontend + Render backend)
+    // sameSite 'none' requires secure: true (HTTPS)
     const isProduction = process.env['NODE_ENV'] === 'production';
     const cookieSecure = process.env['COOKIE_SECURE'] === 'true' || isProduction;
-    const sameSitePolicy = isProduction ? 'strict' : 'lax';
+    // Cross-origin deployment requires 'none', same-origin uses 'strict'
+    const sameSitePolicy: 'none' | 'lax' | 'strict' = isProduction ? 'none' : 'lax';
 
     res.cookie('accessToken', result.accessToken, {
       httpOnly: true,
@@ -116,7 +116,7 @@ export class AuthController {
     // Establecer nuevos tokens como HttpOnly cookies con configuración segura
     const isProduction = process.env['NODE_ENV'] === 'production';
     const cookieSecure = process.env['COOKIE_SECURE'] === 'true' || isProduction;
-    const sameSitePolicy = isProduction ? 'strict' : 'lax';
+    const sameSitePolicy: 'none' | 'lax' | 'strict' = isProduction ? 'none' : 'lax';
 
     res.cookie('accessToken', result.accessToken, {
       httpOnly: true,
@@ -162,7 +162,7 @@ export class AuthController {
     // Limpiar cookies con las mismas opciones usadas al crearlas
     const isProduction = process.env['NODE_ENV'] === 'production';
     const cookieSecure = process.env['COOKIE_SECURE'] === 'true' || isProduction;
-    const sameSitePolicy = isProduction ? 'strict' : 'lax';
+    const sameSitePolicy: 'none' | 'lax' | 'strict' = isProduction ? 'none' : 'lax';
 
     res.clearCookie('accessToken', {
       httpOnly: true,
