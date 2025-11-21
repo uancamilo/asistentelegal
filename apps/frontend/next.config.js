@@ -65,20 +65,21 @@ const nextConfig = {
     ];
   },
 
-  // API Rewrites - Only in development
+  // API Rewrites - Proxy all /api requests to backend
+  // This avoids cross-origin cookie issues by making all requests same-origin
   async rewrites() {
-    // Only use rewrites in development
-    if (process.env.NODE_ENV === 'development') {
-      const backendUrl = process.env.BACKEND_URL || 'http://localhost:8080';
+    // In development, use BACKEND_URL or localhost
+    // In production, use NEXT_PUBLIC_API_URL (without /api suffix)
+    const backendUrl = process.env.NODE_ENV === 'development'
+      ? (process.env.BACKEND_URL || 'http://localhost:8080')
+      : (process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, '') || 'https://asistentelegal.onrender.com');
 
-      return [
-        {
-          source: '/api/:path*',
-          destination: `${backendUrl}/api/:path*`,
-        },
-      ];
-    }
-    return [];
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
+      },
+    ];
   },
 };
 
