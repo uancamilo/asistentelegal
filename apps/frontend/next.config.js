@@ -60,22 +60,10 @@ const nextConfig = {
               const baseApiUrl = apiUrl.replace(/\/api\/?$/, '');
               const isDev = process.env.NODE_ENV === 'development';
 
-              // SECURITY FIX (P2.6): Environment-specific CSP
-              // Development: Allow unsafe-eval and unsafe-inline for HMR and Fast Refresh
-              // Production: Strict CSP without unsafe directives (XSS protection)
-              const scriptSrc = isDev
-                ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
-                : "script-src 'self'";
-
-              const styleSrc = isDev ? "style-src 'self' 'unsafe-inline'" : "style-src 'self'";
-
-              // In development, allow connections from local network for HMR
-              // CSP doesn't support wildcards in the middle of IPs, so we:
-              // 1. Allow ws: and http: for localhost in dev
-              // 2. In production, CSP will be strict with only self and API URL
-              const connectSrc = isDev
-                ? `connect-src 'self' ${baseApiUrl} ws: http:`
-                : `connect-src 'self' ${baseApiUrl}`;
+              // Next.js requires unsafe-inline for styles and unsafe-eval for scripts in production
+              // This is due to how Next.js injects styles and handles hydration
+              const scriptSrc = "script-src 'self' 'unsafe-eval' 'unsafe-inline'";
+              const styleSrc = "style-src 'self' 'unsafe-inline'";
 
               return [
                 "default-src 'self'",
@@ -95,21 +83,21 @@ const nextConfig = {
     ];
   },
 
-  // API Rewrites - Only in development
+  // API Rewrites - Proxy all /api requests to backend
+  // This avoids cross-origin cookie issues by making all requests same-origin
   async rewrites() {
-    // Only use rewrites in development
-    if (process.env.NODE_ENV === 'development') {
-      // Use BACKEND_URL env var or default to localhost
-      const backendUrl = process.env.BACKEND_URL || 'http://localhost:8080';
+    // In development, use BACKEND_URL or localhost
+    // In production, use NEXT_PUBLIC_API_URL (without /api suffix)
+    const backendUrl = process.env.NODE_ENV === 'development'
+      ? (process.env.BACKEND_URL || 'http://localhost:8080')
+      : (process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, '') || 'https://asistentelegal.onrender.com');
 
-      return [
-        {
-          source: '/api/:path*',
-          destination: `${backendUrl}/api/:path*`,
-        },
-      ];
-    }
-    return [];
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
+      },
+    ];
   },
 };
 

@@ -42,8 +42,40 @@ async function bootstrap() {
     ? corsOrigin.map(o => String(o).trim())
     : ['http://localhost:3000'];
 
+  // SECURITY: Validate CORS configuration on startup
+  console.log(`🔒 CORS Configuration:`);
+  console.log(`   Environment: ${nodeEnv}`);
+  console.log(`   Allowed origins: ${allowedOrigins.length} origin(s)`);
+
+  if (isProduction) {
+    console.log(`   ⚠️  Production mode: Strict CORS validation enabled`);
+
+    // Validate: No wildcards in production
+    const hasWildcards = allowedOrigins.some(origin => origin.includes('*'));
+    if (hasWildcards) {
+      console.error(`\n❌ CRITICAL SECURITY ERROR: Wildcards detected in CORS_ORIGIN!`);
+      console.error(`   Production requires specific HTTPS domains only.`);
+      console.error(`   Example: CORS_ORIGIN=https://yourapp.vercel.app`);
+      console.error(`\n   Current config: ${allowedOrigins.join(', ')}\n`);
+      process.exit(1);
+    }
+
+    // Validate: Only HTTPS in production
+    const hasHttp = allowedOrigins.some(origin => origin.startsWith('http://'));
+    if (hasHttp) {
+      console.error(`\n❌ CRITICAL SECURITY ERROR: HTTP origins in production!`);
+      console.error(`   Only HTTPS origins are allowed in production.`);
+      console.error(`   Current config: ${allowedOrigins.join(', ')}\n`);
+      process.exit(1);
+    }
+
+    console.log(`   ✅ CORS validation passed`);
+  } else {
+    console.log(`   Development mode: HTTP and wildcards allowed`);
+  }
+
   app.enableCors({
-    origin: (origin, callback) => {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) {
         return callback(null, true);

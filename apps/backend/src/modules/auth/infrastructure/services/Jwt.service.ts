@@ -37,20 +37,17 @@ export class JwtService {
    * Genera un access token (corta duración)
    */
   async generateAccessToken(payload: JwtPayload): Promise<string> {
-    return this.jwtService.signAsync(payload, {
-      secret: this.configService.getOrThrow<string>('jwt.secret'),
-      expiresIn: this.configService.getOrThrow<string>('jwt.expiresIn'),
-    });
+    return this.jwtService.signAsync(payload as Record<string, any>);
   }
 
   /**
    * Genera un refresh token (larga duración)
    */
   async generateRefreshToken(payload: JwtPayload): Promise<string> {
-    return this.jwtService.signAsync(payload, {
+    return this.jwtService.signAsync(payload as Record<string, any>, {
       secret: this.configService.getOrThrow<string>('jwt.refreshSecret'),
       expiresIn: this.configService.getOrThrow<string>('jwt.refreshExpiresIn'),
-    });
+    } as any);
   }
 
   /**
