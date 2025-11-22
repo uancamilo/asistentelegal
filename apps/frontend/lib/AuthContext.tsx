@@ -4,24 +4,7 @@ import { createContext, useState, useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import apiClient from './api/client'
 
-import type { User, Role } from './types'
-
-export interface LoginData {
-  user: User
-}
-
-export interface AuthContextType {
-  user: User | null
-  isLoading: boolean
-  login: (data: LoginData) => void
-  logout: () => Promise<void>
-  refreshAccessToken: () => Promise<boolean>
-  getUserRole: () => Role | undefined
-  getUserStatus: () => string | undefined
-  isUserActive: () => boolean
-  getRedirectPath: (role: string) => string
-  validateUserAccess: (user: User | null) => { valid: boolean; reason?: string }
-}
+import type { User, Role, LoginData, AuthContextType } from './types'
 
 export const AuthContext = createContext<AuthContextType | null>(null)
 

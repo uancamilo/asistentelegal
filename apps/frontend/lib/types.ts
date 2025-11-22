@@ -89,6 +89,7 @@ export interface Document {
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
+  hierarchyLevel?: number;
 }
 
 export interface CreateDocumentRequest {
@@ -213,4 +214,173 @@ export interface ModalLoadingIndicatorProps {
 export interface ButtonLoadingIndicatorProps {
   message?: string;
   size?: LoadingSize;
+}
+
+// Audit Types
+export enum AuditAction {
+  CREATE = 'CREATE',
+  UPDATE = 'UPDATE',
+  DELETE = 'DELETE',
+  LOGIN = 'LOGIN',
+  LOGOUT = 'LOGOUT',
+  INVITE = 'INVITE',
+  ACTIVATE = 'ACTIVATE'
+}
+
+export enum AuditResource {
+  USER = 'USER',
+  ACCOUNT = 'ACCOUNT',
+  DOCUMENT = 'DOCUMENT',
+  SESSION = 'SESSION',
+  INVITATION = 'INVITATION'
+}
+
+export interface AuditLog {
+  id: string;
+  userId: string;
+  action: AuditAction;
+  resource: AuditResource;
+  resourceId?: string;
+  success: boolean;
+  ipAddress?: string;
+  details?: Record<string, any>;
+  errorMessage?: string;
+  createdAt: string;
+}
+
+// Profile Types
+export interface UserProfile {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  role: Role;
+  status: UserStatus;
+  accountId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AccountData {
+  id: string;
+  name: string;
+  ownerId: string | null;
+  createdBy: string;
+  status: AccountStatus;
+  isSystemAccount: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CompleteProfile {
+  user: UserProfile;
+  account: AccountData | null;
+}
+
+// Authentication Types
+export interface LoginData {
+  user: User;
+}
+
+export interface AuthContextType {
+  user: User | null;
+  isLoading: boolean;
+  login: (data: LoginData) => void;
+  logout: () => Promise<void>;
+  refreshAccessToken: () => Promise<boolean>;
+  getUserRole: () => Role | undefined;
+  getUserStatus: () => string | undefined;
+  isUserActive: () => boolean;
+  getRedirectPath: (role: string) => string;
+  validateUserAccess: (user: User | null) => { valid: boolean; reason?: string };
+}
+
+// Dashboard Types
+export interface DashboardStats {
+  totalDocuments: number;
+  totalUsers: number;
+  totalAuditLogs: number;
+  recentActivity: AuditLog[];
+}
+
+// Form Types
+export interface LoginFormData {
+  email: string;
+  password: string;
+}
+
+export interface InviteUserFormData {
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: Role;
+}
+
+// Invitation Types
+export interface InvitationData {
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  accountName: string;
+  invitedBy: string;
+}
+
+export type PageState = 'validating' | 'valid' | 'invalid' | 'submitting' | 'success' | 'error';
+
+// Document API Types (Additional)
+export interface DocumentListResponse {
+  documents: Document[];
+  total: number;
+  totalPages: number;
+  page: number;
+  limit: number;
+}
+
+export interface FilterDocumentsRequest {
+  query?: string;
+  type?: DocumentType;
+  status?: DocumentStatus;
+  scope?: DocumentScope;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  isActive?: boolean;
+  searchText?: string;
+}
+
+export interface DocumentStatistics {
+  totalDocuments: number;
+  totalPublished: number;
+  totalDrafts: number;
+  totalArchived: number;
+  documentsByType: Record<DocumentType, number>;
+  documentsByScope: Record<DocumentScope, number>;
+}
+
+export interface DocumentFile {
+  id: string;
+  documentId: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  createdAt: string;
+}
+
+export interface SemanticSearchRequest {
+  query: string;
+  type?: DocumentType;
+  scope?: DocumentScope;
+  limit?: number;
+  threshold?: number;
+}
+
+export interface HybridSearchRequest extends SemanticSearchRequest {
+  useSemanticSearch: boolean;
+  semanticWeight?: number;
+  includeKeywordSearch?: boolean;
 }
