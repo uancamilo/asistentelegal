@@ -42,16 +42,10 @@ const nextConfig = {
               const baseApiUrl = apiUrl.replace(/\/api\/?$/, '');
               const isDev = process.env.NODE_ENV === 'development';
 
-              // SECURITY FIX (P2.6): Environment-specific CSP
-              // Development: Allow unsafe-eval and unsafe-inline for HMR and Fast Refresh
-              // Production: Strict CSP without unsafe directives (XSS protection)
-              const scriptSrc = isDev
-                ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
-                : "script-src 'self'";
-
-              const styleSrc = isDev
-                ? "style-src 'self' 'unsafe-inline'"
-                : "style-src 'self'";
+              // Next.js requires unsafe-inline for styles and unsafe-eval for scripts in production
+              // This is due to how Next.js injects styles and handles hydration
+              const scriptSrc = "script-src 'self' 'unsafe-eval' 'unsafe-inline'";
+              const styleSrc = "style-src 'self' 'unsafe-inline'";
 
               return [
                 "default-src 'self'",
@@ -71,22 +65,21 @@ const nextConfig = {
     ];
   },
 
-  // API Rewrites - Only in development
+  // API Rewrites - Proxy all /api requests to backend
+  // This avoids cross-origin cookie issues by making all requests same-origin
   async rewrites() {
-    // Only use rewrites in development
-    if (process.env.NODE_ENV === 'development') {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-      // Remove trailing /api if present to avoid duplication
-      const baseUrl = apiUrl.replace(/\/api\/?$/, '');
+    // In development, use BACKEND_URL or localhost
+    // In production, use NEXT_PUBLIC_API_URL (without /api suffix)
+    const backendUrl = process.env.NODE_ENV === 'development'
+      ? (process.env.BACKEND_URL || 'http://localhost:8080')
+      : (process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, '') || 'https://asistentelegal.onrender.com');
 
-      return [
-        {
-          source: '/api/:path*',
-          destination: `${baseUrl}/api/:path*`,
-        },
-      ];
-    }
-    return [];
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
+      },
+    ];
   },
 };
 
