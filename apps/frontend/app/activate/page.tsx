@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import apiClient from '@/lib/api/client'
 import {
-  Loader2,
   AlertCircle,
   CheckCircle2,
   Eye,
@@ -19,6 +18,7 @@ import {
   Building2,
   Calendar
 } from 'lucide-react'
+import { LoadingIndicator, ButtonLoadingIndicator } from '@/components/ui/LoadingIndicator'
 
 interface InvitationData {
   valid: boolean
@@ -248,13 +248,10 @@ function ActivatePageContent() {
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center text-center space-y-4">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              <div>
-                <h2 className="text-xl font-semibold mb-2">Validando invitación</h2>
-                <p className="text-muted-foreground">
-                  Por favor espera mientras verificamos tu invitación...
-                </p>
-              </div>
+              <LoadingIndicator message="Validando invitación" size="lg" />
+              <p className="text-muted-foreground">
+                Por favor espera mientras verificamos tu invitación...
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -537,10 +534,7 @@ function ActivatePageContent() {
                 className="flex-1"
               >
                 {pageState === 'submitting' ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Activando cuenta...
-                  </>
+                  <ButtonLoadingIndicator message="Activando cuenta" size="sm" />
                 ) : (
                   'Activar Cuenta'
                 )}
@@ -558,10 +552,7 @@ export default function ActivatePage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mb-4"></div>
-          <p className="text-gray-600">Cargando...</p>
-        </div>
+        <LoadingIndicator message="Cargando" size="lg" />
       </div>
     }>
       <ActivatePageContent />

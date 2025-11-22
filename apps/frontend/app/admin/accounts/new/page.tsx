@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/toast'
 import apiClient from '@/lib/api/client'
-import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react'
+import { ArrowLeft, AlertCircle } from 'lucide-react'
+import { ComponentLoadingIndicator, ButtonLoadingIndicator } from '@/components/ui/LoadingIndicator'
 import { useAuth } from '@/lib/useAuth'
 
 export default function NewAccountPage() {
@@ -67,12 +68,11 @@ export default function NewAccountPage() {
   // Mostrar loading mientras se verifica la autenticación
   if (isAuthLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
-          <p className="text-muted-foreground">Verificando permisos...</p>
-        </div>
-      </div>
+      <ComponentLoadingIndicator 
+        message="Verificando permisos"
+        size="lg"
+        className="h-96"
+      />
     )
   }
 

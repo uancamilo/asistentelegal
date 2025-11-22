@@ -7,6 +7,7 @@ import axios from 'axios'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/useAuth'
+import { LoadingIndicator, ButtonLoadingIndicator } from '@/components/ui/LoadingIndicator'
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -112,7 +113,7 @@ export default function LoginPage() {
         fontFamily: 'system-ui',
         textAlign: 'center'
       }}>
-        <div style={{ marginBottom: '1rem' }}>Verificando autenticación...</div>
+        <LoadingIndicator message="Verificando autenticación" size="md" />
       </div>
     )
   }
@@ -199,10 +200,17 @@ export default function LoginPage() {
             color: 'white',
             border: 'none',
             borderRadius: '4px',
-            cursor: isLoading ? 'not-allowed' : 'pointer'
+            cursor: isLoading ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
         >
-          {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+          {isLoading ? (
+            <ButtonLoadingIndicator message="Iniciando sesión" size="sm" />
+          ) : (
+            'Iniciar sesión'
+          )}
         </button>
       </form>
     </div>

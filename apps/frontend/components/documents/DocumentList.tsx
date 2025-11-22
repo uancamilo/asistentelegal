@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { ComponentLoadingIndicator } from '@/components/ui/LoadingIndicator'
 import {
   Select,
   SelectContent,
@@ -305,9 +306,7 @@ export default function DocumentList({
 
         {/* Table */}
         {loading ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500">Cargando documentos...</p>
-          </div>
+          <ComponentLoadingIndicator message="Cargando documentos" size="md" />
         ) : !hasSearched ? (
           <div className="text-center py-8">
             <Search className="h-12 w-12 mx-auto text-gray-400 mb-4" />

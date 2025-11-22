@@ -20,7 +20,6 @@ import { useAuth } from '@/lib/useAuth'
 import apiClient from '@/lib/api/client'
 import {
   ArrowLeft,
-  Loader2,
   Mail,
   Users,
   AlertCircle,
@@ -31,6 +30,7 @@ import {
   ToggleLeft,
   ToggleRight
 } from 'lucide-react'
+import { ComponentLoadingIndicator, ButtonLoadingIndicator } from '@/components/ui/LoadingIndicator'
 import type { Account } from '@/lib/types'
 import { translateRole, translateUserStatus } from '@/lib/translations'
 
@@ -399,9 +399,11 @@ export default function EditAccountPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <ComponentLoadingIndicator 
+        message="Cargando cuenta"
+        size="lg"
+        className="h-64"
+      />
     )
   }
 
@@ -517,10 +519,7 @@ export default function EditAccountPage() {
                 className="w-full sm:w-auto"
               >
                 {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Guardando...
-                  </>
+                  <ButtonLoadingIndicator message="Guardando" size="sm" />
                 ) : (
                   'Guardar Cambios'
                 )}
@@ -540,10 +539,7 @@ export default function EditAccountPage() {
                   disabled={deactivating}
                 >
                   {deactivating ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Desactivando...
-                    </>
+                    <ButtonLoadingIndicator message="Desactivando" size="sm" />
                   ) : (
                     'Desactivar Cuenta'
                   )}
@@ -639,10 +635,7 @@ export default function EditAccountPage() {
                   className="w-full sm:w-auto"
                 >
                   {inviting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Enviando invitación...
-                    </>
+                    <ButtonLoadingIndicator message="Enviando invitación" size="sm" />
                   ) : (
                     'Enviar Invitación'
                   )}
@@ -744,10 +737,7 @@ export default function EditAccountPage() {
 
                 <Button type="submit" disabled={creatingUser} className="w-full">
                   {creatingUser ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Enviando invitación...
-                    </>
+                    <ButtonLoadingIndicator message="Enviando invitación" size="sm" />
                   ) : (
                     'Enviar Invitación'
                   )}
@@ -757,9 +747,7 @@ export default function EditAccountPage() {
 
             {/* Lista de usuarios */}
             {loadingUsers ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
+              <ComponentLoadingIndicator message="Cargando usuarios" size="md" />
             ) : users.length === 0 ? (
               <p className="text-center text-muted-foreground py-8 text-sm">
                 No hay empleados en esta cuenta

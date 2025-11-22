@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/hooks/useAuth';
 import { TrendingUp, AlertCircle, ShieldAlert, FileText, Eye, Activity, BarChart3, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { PageLoadingIndicator } from '@/components/ui/LoadingIndicator';
 import axios from 'axios';
 
 interface TopQuery {
@@ -224,12 +225,7 @@ export default function AnalyticsPage() {
   // Si está verificando autenticación
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mb-4"></div>
-          <p className="text-gray-600">Verificando permisos...</p>
-        </div>
-      </div>
+      <PageLoadingIndicator message="Verificando permisos" />
     );
   }
 
@@ -249,12 +245,7 @@ export default function AnalyticsPage() {
   // Si está cargando datos
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mb-4"></div>
-          <p className="text-gray-600">Cargando analytics...</p>
-        </div>
-      </div>
+      <PageLoadingIndicator message="Cargando analytics" />
     );
   }
 

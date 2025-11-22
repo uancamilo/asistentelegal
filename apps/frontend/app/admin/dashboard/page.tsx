@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { ComponentLoadingIndicator } from '@/components/ui/LoadingIndicator'
 import apiClient from '@/lib/api/client'
-import { Building2, Users, FileText, Activity } from 'lucide-react'
+import { Building2, Users, FileText } from 'lucide-react'
 import type { AuditLog } from '@/lib/types'
 
 interface DashboardStats {
@@ -44,12 +45,11 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Activity className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
-          <p className="text-muted-foreground">Cargando dashboard...</p>
-        </div>
-      </div>
+      <ComponentLoadingIndicator 
+        message="Cargando dashboard"
+        size="lg"
+        className="h-64"
+      />
     )
   }
 
