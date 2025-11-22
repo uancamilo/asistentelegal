@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
 import { ArrowLeft, Edit, Trash2, CheckCircle, Archive } from 'lucide-react'
 import DocumentViewer from '@/components/documents/DocumentViewer'
+import { ComponentLoadingIndicator, ButtonLoadingIndicator } from '@/components/ui/LoadingIndicator'
 import { getDocumentById, publishDocument, archiveDocument, deleteDocument } from '@/lib/api/documents'
 import type { Document } from '@/lib/types'
 
@@ -17,6 +18,9 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
   const { addToast } = useToast()
   const [document, setDocument] = useState<Document | null>(null)
   const [loading, setLoading] = useState(true)
+  const [publishing, setPublishing] = useState(false)
+  const [archiving, setArchiving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     fetchDocument()
@@ -39,6 +43,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
   }
 
   const handlePublish = async () => {
+    setPublishing(true)
     try {
       await publishDocument(id)
       addToast({
@@ -53,10 +58,13 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
         description: error.response?.data?.message || 'No se pudo publicar el documento',
         variant: 'destructive',
       })
+    } finally {
+      setPublishing(false)
     }
   }
 
   const handleArchive = async () => {
+    setArchiving(true)
     try {
       await archiveDocument(id)
       addToast({
@@ -71,6 +79,8 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
         description: error.response?.data?.message || 'No se pudo archivar el documento',
         variant: 'destructive',
       })
+    } finally {
+      setArchiving(false)
     }
   }
 
@@ -79,6 +89,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
       return
     }
 
+    setDeleting(true)
     try {
       await deleteDocument(id)
       addToast({
@@ -93,14 +104,18 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
         description: error.response?.data?.message || 'No se pudo eliminar el documento',
         variant: 'destructive',
       })
+    } finally {
+      setDeleting(false)
     }
   }
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <p className="text-center text-gray-500">Cargando documento...</p>
-      </div>
+      <ComponentLoadingIndicator 
+        message="Cargando documento" 
+        size="lg" 
+        height="lg" 
+      />
     )
   }
 
@@ -133,9 +148,16 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
             <Button
               variant="default"
               onClick={handlePublish}
+              disabled={publishing}
             >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Publicar
+              {publishing ? (
+                <ButtonLoadingIndicator message="Publicando" size="sm" />
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Publicar
+                </>
+              )}
             </Button>
           )}
 
@@ -143,18 +165,32 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
             <Button
               variant="outline"
               onClick={handleArchive}
+              disabled={archiving}
             >
-              <Archive className="h-4 w-4 mr-2" />
-              Archivar
+              {archiving ? (
+                <ButtonLoadingIndicator message="Archivando" size="sm" />
+              ) : (
+                <>
+                  <Archive className="h-4 w-4 mr-2" />
+                  Archivar
+                </>
+              )}
             </Button>
           )}
 
           <Button
             variant="destructive"
             onClick={handleDelete}
+            disabled={deleting}
           >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Eliminar
+            {deleting ? (
+              <ButtonLoadingIndicator message="Eliminando" size="sm" />
+            ) : (
+              <>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Eliminar
+              </>
+            )}
           </Button>
         </div>
       </div>

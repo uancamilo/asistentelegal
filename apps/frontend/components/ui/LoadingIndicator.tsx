@@ -18,19 +18,19 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
 }) => {
   const sizeClasses = {
     sm: 'text-sm',
-    md: 'text-base',
-    lg: 'text-lg'
+    md: 'text-sm', // Estandarizado a text-sm para consistencia
+    lg: 'text-base' // Reducido de text-lg para consistencia
   };
 
   const containerClasses = cn(
-    'flex items-center gap-2',
+    'flex items-center gap-3', // Gap estandarizado a 3
     center && !inline && 'justify-center',
     inline ? 'inline-flex' : 'flex',
     className
   );
 
   const textClasses = cn(
-    'text-gray-600 dark:text-gray-300 font-medium',
+    'text-muted-foreground font-medium', // Color unificado
     sizeClasses[size]
   );
 
@@ -42,7 +42,7 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
       <div className="flex space-x-1">
         <div 
           className={cn(
-            'rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse',
+            'rounded-full bg-muted-foreground/40 animate-pulse', // Color unificado con opacity
             size === 'sm' ? 'w-1 h-1' : size === 'md' ? 'w-1.5 h-1.5' : 'w-2 h-2'
           )}
           style={{ 
@@ -53,7 +53,7 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
         />
         <div 
           className={cn(
-            'rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse',
+            'rounded-full bg-muted-foreground/40 animate-pulse',
             size === 'sm' ? 'w-1 h-1' : size === 'md' ? 'w-1.5 h-1.5' : 'w-2 h-2'
           )}
           style={{ 
@@ -64,7 +64,7 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
         />
         <div 
           className={cn(
-            'rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse',
+            'rounded-full bg-muted-foreground/40 animate-pulse',
             size === 'sm' ? 'w-1 h-1' : size === 'md' ? 'w-1.5 h-1.5' : 'w-2 h-2'
           )}
           style={{ 
@@ -126,7 +126,7 @@ export const ComponentLoadingIndicator: React.FC<Omit<LoadingIndicatorProps, 'ce
   return (
     <div className={cn(
       'flex items-center justify-center w-full',
-      height !== 'auto' ? heightClasses[height] : 'py-8',
+      height !== 'auto' ? heightClasses[height] : 'py-6', // Espaciado estandarizado
       className
     )}>
       <LoadingIndicator 
@@ -175,7 +175,7 @@ export const ModalLoadingIndicator: React.FC<Omit<LoadingIndicatorProps, 'center
 
   return (
     <div className={cn(
-      'rounded-lg shadow-lg p-8 max-w-md text-center',
+      'rounded-lg shadow-lg p-6 max-w-md text-center', // Padding estandarizado
       backgroundClasses[background],
       className
     )}>
