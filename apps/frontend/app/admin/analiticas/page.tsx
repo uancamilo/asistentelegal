@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/hooks/useAuth';
 import { TrendingUp, AlertCircle, ShieldAlert, FileText, Eye, Activity, BarChart3, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import { PageLoadingIndicator } from '@/components/ui/LoadingIndicator';
+import { PageLoadingIndicator, ModalLoadingIndicator } from '@/components/ui/LoadingIndicator';
 import axios from 'axios';
 
 interface TopQuery {
@@ -231,15 +231,7 @@ export default function AnalyticsPage() {
 
   // Si no es SUPER_ADMIN
   if (!user || user.role !== 'SUPER_ADMIN') {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-red-50">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
-          <ShieldAlert className="mx-auto text-red-500 mb-4" size={64} />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Acceso Restringido</h2>
-          <p className="text-gray-600">Esta página solo está disponible para Super Administradores.</p>
-        </div>
-      </div>
-    );
+    return null; // El redirect ya se maneja en el useEffect
   }
 
   // Si está cargando datos
@@ -252,7 +244,7 @@ export default function AnalyticsPage() {
   // Si hay error
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
           <div className="flex items-center gap-3 mb-2">
             <AlertCircle className="text-red-500" size={24} />
@@ -261,7 +253,7 @@ export default function AnalyticsPage() {
           <p className="text-red-700">{error}</p>
           <button
             onClick={() => loadAnalytics()}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
           >
             Reintentar
           </button>

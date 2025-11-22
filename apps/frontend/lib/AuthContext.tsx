@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useState, useEffect, ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
 import axios from 'axios'
 
 export interface User {
@@ -46,6 +47,8 @@ const roleRedirects: Record<User['role'], string> = {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false)
+  const router = useRouter()
 
   const validateSession = async (): Promise<boolean> => {
     try {
@@ -71,6 +74,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     const initializeAuth = async () => {
+      // No mostrar loader si estamos en proceso de logout
+      if (isLoggingOut) {
+        return
+      }
+      
       try {
         await validateSession()
       } catch (error) {
@@ -81,7 +89,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
 
     initializeAuth()
-  }, [])
+  }, [isLoggingOut])
 
   const login = (data: LoginData) => {
     const { user: newUser } = data
@@ -89,6 +97,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }
 
   const logout = async () => {
+    setIsLoggingOut(true)
+    
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api'
       await axios.post(`${apiUrl}/auth/logout`, {}, {
@@ -97,9 +107,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch (error) {
     } finally {
       setUser(null)
+      setIsLoading(false)
 
       if (typeof window !== 'undefined') {
-        window.location.href = '/login'
+        router.push('/login')
+        setIsLoggingOut(false)
       }
     }
   }
