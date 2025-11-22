@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/lib/useAuth'
 import { useToast } from '@/components/ui/toast'
+import { ComponentLoadingIndicator } from '@/components/ui/LoadingIndicator'
 import { UserCircle, Mail, User, Calendar, Shield } from 'lucide-react'
 import { getCompleteProfile, type CompleteProfile } from '@/lib/api/profile'
 import { translateRole, translateUserStatus, translateAccountStatus } from '@/lib/translations'
@@ -40,9 +41,11 @@ export default function PerfilPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <p className="text-center text-gray-500">Cargando perfil...</p>
-      </div>
+      <ComponentLoadingIndicator 
+        message="Cargando perfil" 
+        size="md" 
+        height="md" 
+      />
     )
   }
 
@@ -58,8 +61,8 @@ export default function PerfilPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Mi Perfil</h1>
-        <p className="text-gray-600 mt-2">
+        <h1 className="text-2xl font-bold text-foreground">Mi Perfil</h1>
+        <p className="text-muted-foreground text-sm mt-2">
           Información personal y datos de usuario
         </p>
       </div>

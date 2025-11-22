@@ -3,12 +3,13 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import axios from 'axios'
+import apiClient from '@/lib/api/client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/useAuth'
 import { ModalLoadingIndicator, ButtonLoadingIndicator } from '@/components/ui/LoadingIndicator'
 import { cn } from '@/lib/utils'
+import type { ApiError } from '@/lib/types'
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -69,12 +70,9 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api'
-      const response = await axios.post(`${apiUrl}/auth/login`, {
+      const response = await apiClient.post('/auth/login', {
         email: data.email,
         password: data.password,
-      }, {
-        withCredentials: true, // Incluir cookies en la petición
       })
 
       const { user } = response.data // Tokens ahora están en HttpOnly cookies
@@ -91,10 +89,11 @@ export default function LoginPage() {
       // 3. REDIRECCIÓN CONDICIONAL POR ROL
       const redirectPath = getRedirectPathByRole(user.role)
       router.push(redirectPath)
-    } catch (err: any) {
-      if (err.response?.status === 401) {
+    } catch (err) {
+      const error = err as ApiError;
+      if (error.response?.status === 401) {
         setError('Credenciales inválidas')
-      } else if (err.response?.status === 400) {
+      } else if (error.response?.status === 400) {
         setError('Datos de login inválidos')
       } else {
         setError('Error al conectar con el servidor')

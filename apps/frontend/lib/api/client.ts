@@ -54,8 +54,11 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Si el token expiró, intentar refrescar
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Si el token expiró, intentar refrescar SOLO si no es una ruta de auth
+    if (error.response?.status === 401 && 
+        !originalRequest._retry && 
+        !originalRequest.url?.includes('/auth/')) {
+      
       if (isRefreshing) {
         // Si ya hay un refresh en progreso, agregar esta petición a la cola
         return new Promise((resolve, reject) => {
@@ -74,7 +77,12 @@ apiClient.interceptors.response.use(
         await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
           {},
-          { withCredentials: true }
+          { 
+            withCredentials: true,
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }
         );
 
         // Refresh exitoso - procesar todas las peticiones en cola
@@ -88,11 +96,25 @@ apiClient.interceptors.response.use(
         processQueue(refreshError);
         isRefreshing = false;
 
-        // Redirigir al login
+        // Limpiar cookies y redirigir al login
         if (typeof window !== 'undefined') {
+          // Limpiar todas las cookies de autenticación
+          document.cookie.split(";").forEach(function(c) { 
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+          });
           window.location.href = '/login';
         }
         return Promise.reject(refreshError);
+      }
+    }
+
+    // Si es un 401 en rutas de auth (login, refresh), no intentar refresh
+    if (error.response?.status === 401 && originalRequest.url?.includes('/auth/')) {
+      // Limpiar cookies inválidas
+      if (typeof window !== 'undefined') {
+        document.cookie.split(";").forEach(function(c) { 
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+        });
       }
     }
 

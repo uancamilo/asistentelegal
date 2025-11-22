@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../lib/hooks/useAuth';
+import { useAuth } from '@/lib/useAuth';
 import { TrendingUp, AlertCircle, ShieldAlert, FileText, Eye, Activity, BarChart3, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { ComponentLoadingIndicator, ModalLoadingIndicator } from '@/components/ui/LoadingIndicator';
-import axios from 'axios';
+import apiClient from '@/lib/api/client';
+import type { ApiError } from '@/lib/types';
 
 interface TopQuery {
   query: string;
@@ -108,26 +109,18 @@ export default function AnalyticsPage() {
       }
 
       const [topQueriesRes, zeroResultsRes, topDocsRes] = await Promise.all([
-        axios.get(`${apiUrl}/search/analytics/top-queries`, {
-          params,
-          withCredentials: true,
-        }),
-        axios.get(`${apiUrl}/search/analytics/zero-results-queries`, {
-          params: zeroResultParams,
-          withCredentials: true,
-        }),
-        axios.get(`${apiUrl}/search/analytics/top-viewed-documents`, {
-          params,
-          withCredentials: true,
-        }),
+        apiClient.get(`/search/analytics/top-queries`, { params }),
+        apiClient.get(`/search/analytics/zero-results-queries`, { params: zeroResultParams }),
+        apiClient.get(`/search/analytics/top-viewed-documents`, { params }),
       ]);
 
       setTopQueries(topQueriesRes.data);
       setZeroResultQueries(zeroResultsRes.data);
       setTopDocuments(topDocsRes.data);
-    } catch (err: any) {
-      console.error('Error loading analytics:', err);
-      setError(err.response?.data?.message || 'Error cargando analytics');
+    } catch (err) {
+      const error = err as ApiError;
+      console.error('Error loading analytics:', error);
+      setError(error.response?.data?.message || 'Error cargando analytics');
     } finally {
       setLoading(false);
     }

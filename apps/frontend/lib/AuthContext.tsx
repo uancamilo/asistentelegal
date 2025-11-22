@@ -2,16 +2,9 @@
 
 import { createContext, useState, useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import axios from 'axios'
+import apiClient from './api/client'
 
-export interface User {
-  id: string
-  email: string
-  firstName: string
-  lastName: string
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'ACCOUNT_OWNER' | 'MEMBER'
-  status: 'ACTIVE' | 'SUSPENDED' | string
-}
+import type { User, Role } from './types'
 
 export interface LoginData {
   user: User
@@ -23,7 +16,7 @@ export interface AuthContextType {
   login: (data: LoginData) => void
   logout: () => Promise<void>
   refreshAccessToken: () => Promise<boolean>
-  getUserRole: () => User['role'] | undefined
+  getUserRole: () => Role | undefined
   getUserStatus: () => string | undefined
   isUserActive: () => boolean
   getRedirectPath: (role: string) => string
@@ -36,7 +29,7 @@ interface AuthProviderProps {
   children: ReactNode
 }
 
-const roleRedirects: Record<User['role'], string> = {
+const roleRedirects: Record<Role, string> = {
   SUPER_ADMIN: '/super-admin',
   ADMIN: '/admin',
   EDITOR: '/editor',
@@ -52,10 +45,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const validateSession = async (): Promise<boolean> => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api'
-      const response = await axios.get(`${apiUrl}/auth/validate`, {
-        withCredentials: true,
-      })
+      const response = await apiClient.get('/auth/validate')
 
       if (response.status === 200 && response.data) {
         setUser(response.data)
@@ -100,10 +90,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setIsLoggingOut(true)
     
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api'
-      await axios.post(`${apiUrl}/auth/logout`, {}, {
-        withCredentials: true,
-      })
+      await apiClient.post('/auth/logout', {})
     } catch (error) {
     } finally {
       setUser(null)
@@ -118,10 +105,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const refreshAccessToken = async (): Promise<boolean> => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api'
-      const response = await axios.post(`${apiUrl}/auth/refresh`, {}, {
-        withCredentials: true,
-      })
+      const response = await apiClient.post('/auth/refresh')
 
       if (response.status === 200) {
         return true
@@ -130,28 +114,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return false
     } catch (error: any) {
       if (error.response?.status === 401 || error.response?.status === 403) {
-        await logout()
+        // No llamar logout() aquí para evitar bucles - solo limpiar estado
+        setUser(null)
       }
 
       return false
     }
   }
 
-  const getUserRole = (): User['role'] | undefined => {
+  const getUserRole = (): Role | undefined => {
     return user?.role
   }
 
   const getUserStatus = (): string | undefined => {
-    return user?.status
+    return user?.status.toString()
   }
 
   const isUserActive = (): boolean => {
-    return user?.status === 'ACTIVE'
+    return user?.status.toString() === 'ACTIVE'
   }
 
   const getRedirectPath = (role: string): string => {
     if (role in roleRedirects) {
-      return roleRedirects[role as User['role']]
+      return roleRedirects[role as Role]
     }
 
     return '/admin'
@@ -162,10 +147,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return { valid: false, reason: 'not_authenticated' }
     }
 
-    if (user.status !== 'ACTIVE') {
+    if (user.status.toString() !== 'ACTIVE') {
       return {
         valid: false,
-        reason: user.status === 'SUSPENDED' ? 'suspended' : 'invalid_status',
+        reason: user.status.toString() === 'SUSPENDED' ? 'suspended' : 'invalid_status',
       }
     }
 
