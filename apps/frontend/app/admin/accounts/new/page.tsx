@@ -71,7 +71,7 @@ export default function NewAccountPage() {
       <ComponentLoadingIndicator 
         message="Verificando permisos"
         size="lg"
-        className="h-96"
+        height="lg"
       />
     )
   }

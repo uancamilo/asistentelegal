@@ -18,7 +18,7 @@ import {
   Building2,
   Calendar
 } from 'lucide-react'
-import { LoadingIndicator, ButtonLoadingIndicator } from '@/components/ui/LoadingIndicator'
+import { LoadingIndicator, ButtonLoadingIndicator, PageLoadingIndicator } from '@/components/ui/LoadingIndicator'
 
 interface InvitationData {
   valid: boolean
@@ -551,9 +551,7 @@ function ActivatePageContent() {
 export default function ActivatePage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <LoadingIndicator message="Cargando" size="lg" />
-      </div>
+      <PageLoadingIndicator message="Cargando" background="gradient" />
     }>
       <ActivatePageContent />
     </Suspense>

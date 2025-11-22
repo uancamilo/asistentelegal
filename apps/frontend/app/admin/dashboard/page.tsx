@@ -48,7 +48,7 @@ export default function DashboardPage() {
       <ComponentLoadingIndicator 
         message="Cargando dashboard"
         size="lg"
-        className="h-64"
+        height="lg"
       />
     )
   }

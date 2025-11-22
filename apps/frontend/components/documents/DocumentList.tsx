@@ -306,7 +306,7 @@ export default function DocumentList({
 
         {/* Table */}
         {loading ? (
-          <ComponentLoadingIndicator message="Cargando documentos" size="md" />
+          <ComponentLoadingIndicator message="Cargando documentos" size="md" height="md" />
         ) : !hasSearched ? (
           <div className="text-center py-8">
             <Search className="h-12 w-12 mx-auto text-gray-400 mb-4" />

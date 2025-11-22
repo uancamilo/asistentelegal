@@ -7,7 +7,7 @@ import axios from 'axios'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/useAuth'
-import { LoadingIndicator, ButtonLoadingIndicator } from '@/components/ui/LoadingIndicator'
+import { ModalLoadingIndicator, ButtonLoadingIndicator } from '@/components/ui/LoadingIndicator'
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -106,14 +106,12 @@ export default function LoginPage() {
   // Mostrar loading mientras se valida la sesión o si ya está autenticado
   if (isAuthLoading || user) {
     return (
-      <div style={{
-        maxWidth: '400px',
-        margin: '4rem auto',
-        padding: '2rem',
-        fontFamily: 'system-ui',
-        textAlign: 'center'
-      }}>
-        <LoadingIndicator message="Verificando autenticación" size="md" />
+      <div className="flex items-center justify-center min-h-screen">
+        <ModalLoadingIndicator 
+          message="Verificando autenticación" 
+          size="md"
+          className="max-w-md mx-4" 
+        />
       </div>
     )
   }

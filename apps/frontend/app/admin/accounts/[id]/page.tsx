@@ -402,7 +402,7 @@ export default function EditAccountPage() {
       <ComponentLoadingIndicator 
         message="Cargando cuenta"
         size="lg"
-        className="h-64"
+        height="lg"
       />
     )
   }
@@ -747,7 +747,7 @@ export default function EditAccountPage() {
 
             {/* Lista de usuarios */}
             {loadingUsers ? (
-              <ComponentLoadingIndicator message="Cargando usuarios" size="md" />
+              <ComponentLoadingIndicator message="Cargando usuarios" size="md" height="md" />
             ) : users.length === 0 ? (
               <p className="text-center text-muted-foreground py-8 text-sm">
                 No hay empleados en esta cuenta

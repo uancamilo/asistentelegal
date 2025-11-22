@@ -79,13 +79,22 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
 };
 
 // Variante para loading de página completa
-export const PageLoadingIndicator: React.FC<Omit<LoadingIndicatorProps, 'center' | 'inline'>> = ({
+export const PageLoadingIndicator: React.FC<Omit<LoadingIndicatorProps, 'center' | 'inline'> & {
+  background?: 'default' | 'gradient' | 'error'
+}> = ({
   message = 'Cargando página',
   size = 'lg',
-  className
+  className,
+  background = 'default'
 }) => {
+  const backgroundClasses = {
+    default: 'bg-gray-50 dark:bg-gray-900',
+    gradient: 'bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900 dark:to-indigo-900',
+    error: 'bg-red-50 dark:bg-red-900'
+  };
+
   return (
-    <div className={cn('min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900', className)}>
+    <div className={cn('min-h-screen flex items-center justify-center', backgroundClasses[background], className)}>
       <div className="text-center space-y-4">
         <LoadingIndicator 
           message={message} 
@@ -98,16 +107,26 @@ export const PageLoadingIndicator: React.FC<Omit<LoadingIndicatorProps, 'center'
 };
 
 // Variante para loading en componentes
-export const ComponentLoadingIndicator: React.FC<Omit<LoadingIndicatorProps, 'center'>> = ({
+export const ComponentLoadingIndicator: React.FC<Omit<LoadingIndicatorProps, 'center'> & {
+  height?: 'sm' | 'md' | 'lg' | 'auto'
+}> = ({
   message = 'Cargando contenido',
   size = 'md',
   className,
-  inline = false
+  inline = false,
+  height = 'auto'
 }) => {
+  const heightClasses = {
+    sm: 'h-32',    // 128px - Para componentes pequeños
+    md: 'h-48',    // 192px - Para cards/formularios
+    lg: 'h-64',    // 256px - Para dashboards/secciones grandes
+    auto: ''       // Sin altura fija
+  };
+
   return (
     <div className={cn(
-      'py-8 text-center',
-      !inline && 'w-full',
+      'flex items-center justify-center w-full',
+      height !== 'auto' ? heightClasses[height] : 'py-8',
       className
     )}>
       <LoadingIndicator 
@@ -136,6 +155,36 @@ export const ButtonLoadingIndicator: React.FC<{
       inline={true}
       className="justify-center"
     />
+  );
+};
+
+// Variante para modales/diálogos
+export const ModalLoadingIndicator: React.FC<Omit<LoadingIndicatorProps, 'center' | 'inline'> & {
+  background?: 'white' | 'gray' | 'transparent'
+}> = ({
+  message = 'Cargando',
+  size = 'md',
+  className,
+  background = 'white'
+}) => {
+  const backgroundClasses = {
+    white: 'bg-white dark:bg-gray-800',
+    gray: 'bg-gray-50 dark:bg-gray-900',
+    transparent: 'bg-transparent'
+  };
+
+  return (
+    <div className={cn(
+      'rounded-lg shadow-lg p-8 max-w-md text-center',
+      backgroundClasses[background],
+      className
+    )}>
+      <LoadingIndicator 
+        message={message} 
+        size={size} 
+        center={true}
+      />
+    </div>
   );
 };
 

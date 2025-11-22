@@ -106,9 +106,7 @@ export default function EditUserPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <ComponentLoadingIndicator message="Cargando usuario" size="lg" />
-      </div>
+      <ComponentLoadingIndicator message="Cargando usuario" size="lg" height="lg" />
     )
   }
 
