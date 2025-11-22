@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/hooks/useAuth';
 import { TrendingUp, AlertCircle, ShieldAlert, FileText, Eye, Activity, BarChart3, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import { PageLoadingIndicator, ModalLoadingIndicator } from '@/components/ui/LoadingIndicator';
+import { ComponentLoadingIndicator, ModalLoadingIndicator } from '@/components/ui/LoadingIndicator';
 import axios from 'axios';
 
 interface TopQuery {
@@ -225,7 +225,11 @@ export default function AnalyticsPage() {
   // Si está verificando autenticación
   if (authLoading) {
     return (
-      <PageLoadingIndicator message="Verificando permisos" />
+      <ComponentLoadingIndicator 
+        message="Verificando permisos" 
+        size="lg"
+        height="lg"
+      />
     );
   }
 
@@ -237,7 +241,11 @@ export default function AnalyticsPage() {
   // Si está cargando datos
   if (loading) {
     return (
-      <PageLoadingIndicator message="Cargando analytics" />
+      <ComponentLoadingIndicator 
+        message="Cargando analytics" 
+        size="lg"
+        height="lg"
+      />
     );
   }
 
