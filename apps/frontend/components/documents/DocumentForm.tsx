@@ -234,6 +234,7 @@ export default function DocumentForm({ document, mode, onSuccess, redirectPath }
             <Label htmlFor="summary">Resumen</Label>
             <textarea
               id="summary"
+              name="summary"
               value={formData.summary}
               onChange={(e) => handleChange('summary', e.target.value)}
               placeholder="Breve descripción del documento..."
@@ -248,6 +249,7 @@ export default function DocumentForm({ document, mode, onSuccess, redirectPath }
             <Label htmlFor="fullText">Texto Completo</Label>
             <textarea
               id="fullText"
+              name="fullText"
               value={formData.fullText}
               onChange={(e) => handleChange('fullText', e.target.value)}
               placeholder="Contenido completo del documento legal..."

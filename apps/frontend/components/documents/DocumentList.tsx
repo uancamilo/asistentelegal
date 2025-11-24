@@ -212,6 +212,7 @@ export default function DocumentList({
                 <Input
                   id="search"
                   name="search"
+                  type="search"
                   placeholder="Buscar documentos legales (presiona Enter o haz clic en Buscar)..."
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
@@ -251,8 +252,8 @@ export default function DocumentList({
           {showAdvancedFilters && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Type Filter */}
-              <Select value={typeFilter} onValueChange={(value) => updateURL(searchTerm, value, scopeFilter, statusFilter)}>
-                <SelectTrigger>
+              <Select name="type-filter" value={typeFilter} onValueChange={(value) => updateURL(searchTerm, value, scopeFilter, statusFilter)}>
+                <SelectTrigger id="type-filter">
                   <SelectValue placeholder="Tipo de documento" />
                 </SelectTrigger>
                 <SelectContent>
@@ -274,8 +275,8 @@ export default function DocumentList({
               </Select>
 
               {/* Status Filter */}
-              <Select value={statusFilter} onValueChange={(value) => updateURL(searchTerm, typeFilter, scopeFilter, value)}>
-                <SelectTrigger>
+              <Select name="status-filter" value={statusFilter} onValueChange={(value) => updateURL(searchTerm, typeFilter, scopeFilter, value)}>
+                <SelectTrigger id="status-filter">
                   <SelectValue placeholder="Estado" />
                 </SelectTrigger>
                 <SelectContent>
@@ -287,8 +288,8 @@ export default function DocumentList({
               </Select>
 
               {/* Scope Filter */}
-              <Select value={scopeFilter} onValueChange={(value) => updateURL(searchTerm, typeFilter, value, statusFilter)}>
-                <SelectTrigger>
+              <Select name="scope-filter" value={scopeFilter} onValueChange={(value) => updateURL(searchTerm, typeFilter, value, statusFilter)}>
+                <SelectTrigger id="scope-filter">
                   <SelectValue placeholder="Ámbito" />
                 </SelectTrigger>
                 <SelectContent>

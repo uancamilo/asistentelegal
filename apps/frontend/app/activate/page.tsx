@@ -414,7 +414,9 @@ function ActivatePageContent() {
                 </Label>
                 <Input
                   id="firstName"
+                  name="firstName"
                   type="text"
+                  autoComplete="given-name"
                   value={formData.firstName}
                   onChange={handleFirstNameChange}
                   placeholder="Juan"
@@ -434,7 +436,9 @@ function ActivatePageContent() {
                 </Label>
                 <Input
                   id="lastName"
+                  name="lastName"
                   type="text"
+                  autoComplete="family-name"
                   value={formData.lastName}
                   onChange={handleLastNameChange}
                   placeholder="Pérez"
@@ -453,7 +457,9 @@ function ActivatePageContent() {
               <div className="relative">
                 <Input
                   id="password"
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   value={formData.password}
                   onChange={handlePasswordChange}
                   placeholder="Mínimo 8 caracteres"
@@ -487,7 +493,9 @@ function ActivatePageContent() {
               <div className="relative">
                 <Input
                   id="confirmPassword"
+                  name="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   value={formData.confirmPassword}
                   onChange={handleConfirmPasswordChange}
                   placeholder="Repite tu contraseña"

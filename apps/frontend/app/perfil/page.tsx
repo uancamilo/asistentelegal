@@ -82,22 +82,30 @@ export default function PerfilPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <label htmlFor="firstName" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <User className="h-4 w-4" />
                   Nombre
                 </label>
                 <Input
+                  id="firstName"
+                  name="firstName"
+                  type="text"
+                  autoComplete="given-name"
                   value={profile.user.firstName}
                   disabled
                   className="mt-1"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <label htmlFor="lastName" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <User className="h-4 w-4" />
                   Apellido
                 </label>
                 <Input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  autoComplete="family-name"
                   value={profile.user.lastName}
                   disabled
                   className="mt-1"
@@ -106,11 +114,15 @@ export default function PerfilPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <label htmlFor="email" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 Correo Electrónico
               </label>
               <Input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
                 value={profile.user.email}
                 disabled
                 className="mt-1"
@@ -119,22 +131,28 @@ export default function PerfilPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <label htmlFor="role" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <Shield className="h-4 w-4" />
                   Rol
                 </label>
                 <Input
+                  id="role"
+                  name="role"
+                  type="text"
                   value={translateRole(profile.user.role)}
                   disabled
                   className="mt-1"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <label htmlFor="status" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <Shield className="h-4 w-4" />
                   Estado
                 </label>
                 <Input
+                  id="status"
+                  name="status"
+                  type="text"
                   value={translateUserStatus(profile.user.status)}
                   disabled
                   className="mt-1"
@@ -143,11 +161,14 @@ export default function PerfilPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <label htmlFor="createdAt" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 Fecha de Creación
               </label>
               <Input
+                id="createdAt"
+                name="createdAt"
+                type="text"
                 value={new Date(profile.user.createdAt).toLocaleDateString('es-ES', {
                   year: 'numeric',
                   month: 'long',
@@ -174,20 +195,26 @@ export default function PerfilPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-gray-700">
+                <label htmlFor="accountName" className="text-sm font-medium text-gray-700">
                   Nombre de la Cuenta
                 </label>
                 <Input
+                  id="accountName"
+                  name="accountName"
+                  type="text"
                   value={profile.account.name}
                   disabled
                   className="mt-1"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">
+                <label htmlFor="accountStatus" className="text-sm font-medium text-gray-700">
                   Estado de la Cuenta
                 </label>
                 <Input
+                  id="accountStatus"
+                  name="accountStatus"
+                  type="text"
                   value={translateAccountStatus(profile.account.status)}
                   disabled
                   className="mt-1"

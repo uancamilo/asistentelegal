@@ -122,6 +122,9 @@ export default function AccountsPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
+                id="search-accounts"
+                name="search-accounts"
+                type="search"
                 placeholder="Buscar cuentas..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}

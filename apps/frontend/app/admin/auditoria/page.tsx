@@ -110,6 +110,9 @@ export default function AuditLogsPage() {
               <div className="relative sm:col-span-2 lg:col-span-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
+                  id="search-audit-logs"
+                  name="search-audit-logs"
+                  type="search"
                   placeholder="Buscar..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -117,8 +120,8 @@ export default function AuditLogsPage() {
                 />
               </div>
 
-              <Select value={actionFilter} onValueChange={setActionFilter}>
-                <SelectTrigger>
+              <Select name="action-filter" value={actionFilter} onValueChange={setActionFilter}>
+                <SelectTrigger id="action-filter">
                   <SelectValue placeholder="Acción" />
                 </SelectTrigger>
                 <SelectContent>
@@ -131,8 +134,8 @@ export default function AuditLogsPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={resourceFilter} onValueChange={setResourceFilter}>
-                <SelectTrigger>
+              <Select name="resource-filter" value={resourceFilter} onValueChange={setResourceFilter}>
+                <SelectTrigger id="resource-filter">
                   <SelectValue placeholder="Recurso" />
                 </SelectTrigger>
                 <SelectContent>
@@ -143,8 +146,8 @@ export default function AuditLogsPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={successFilter} onValueChange={setSuccessFilter}>
-                <SelectTrigger>
+              <Select name="success-filter" value={successFilter} onValueChange={setSuccessFilter}>
+                <SelectTrigger id="success-filter">
                   <SelectValue placeholder="Estado" />
                 </SelectTrigger>
                 <SelectContent>

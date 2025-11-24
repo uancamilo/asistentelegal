@@ -113,11 +113,14 @@ export default function CuentaPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <label htmlFor="accountName" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
                 Nombre de la Cuenta
               </label>
               <Input
+                id="accountName"
+                name="accountName"
+                type="text"
                 value={profile.account.name}
                 disabled
                 className="mt-1"
@@ -135,11 +138,14 @@ export default function CuentaPage() {
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <label htmlFor="accountType" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <AlertCircle className="h-4 w-4" />
                   Tipo de Cuenta
                 </label>
                 <Input
+                  id="accountType"
+                  name="accountType"
+                  type="text"
                   value={profile.account.isSystemAccount ? 'Cuenta del Sistema' : 'Cuenta de Cliente'}
                   disabled
                   className="mt-1"
@@ -148,11 +154,14 @@ export default function CuentaPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <label htmlFor="createdAt" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 Fecha de Creación
               </label>
               <Input
+                id="createdAt"
+                name="createdAt"
+                type="text"
                 value={new Date(profile.account.createdAt).toLocaleDateString('es-ES', {
                   year: 'numeric',
                   month: 'long',
@@ -164,11 +173,14 @@ export default function CuentaPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <label htmlFor="updatedAt" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 Última Actualización
               </label>
               <Input
+                id="updatedAt"
+                name="updatedAt"
+                type="text"
                 value={new Date(profile.account.updatedAt).toLocaleDateString('es-ES', {
                   year: 'numeric',
                   month: 'long',
@@ -194,10 +206,13 @@ export default function CuentaPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-700">
+              <label htmlFor="accountId" className="text-sm font-medium text-gray-700">
                 ID de la Cuenta
               </label>
               <Input
+                id="accountId"
+                name="accountId"
+                type="text"
                 value={profile.account.id}
                 disabled
                 className="mt-1 font-mono text-xs"
@@ -206,10 +221,13 @@ export default function CuentaPage() {
 
             {profile.account.ownerId && (
               <div>
-                <label className="text-sm font-medium text-gray-700">
+                <label htmlFor="ownerId" className="text-sm font-medium text-gray-700">
                   ID del Propietario
                 </label>
                 <Input
+                  id="ownerId"
+                  name="ownerId"
+                  type="text"
                   value={profile.account.ownerId}
                   disabled
                   className="mt-1 font-mono text-xs"

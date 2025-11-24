@@ -442,6 +442,7 @@ export default function EditAccountPage() {
               <Label htmlFor="name">Nombre de la Cuenta *</Label>
               <Input
                 id="name"
+                name="name"
                 value={accountName}
                 onChange={(e) => setAccountName(e.target.value)}
                 placeholder="Ej: Empresa ABC S.A."
@@ -588,7 +589,9 @@ export default function EditAccountPage() {
                 </Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
+                  autoComplete="email"
                   value={invitationData.email}
                   onChange={handleEmailChange}
                   placeholder="propietario@empresa.com"
@@ -611,6 +614,7 @@ export default function EditAccountPage() {
                 </Label>
                 <Input
                   id="maxUsers"
+                  name="maxUsers"
                   type="number"
                   min={1}
                   value={invitationData.maxUsers}
@@ -687,6 +691,9 @@ export default function EditAccountPage() {
                     <Label htmlFor="firstName">Nombre *</Label>
                     <Input
                       id="firstName"
+                      name="firstName"
+                      type="text"
+                      autoComplete="given-name"
                       value={newUserData.firstName}
                       onChange={(e) => setNewUserData({...newUserData, firstName: e.target.value})}
                       required
@@ -697,6 +704,9 @@ export default function EditAccountPage() {
                     <Label htmlFor="lastName">Apellido *</Label>
                     <Input
                       id="lastName"
+                      name="lastName"
+                      type="text"
+                      autoComplete="family-name"
                       value={newUserData.lastName}
                       onChange={(e) => setNewUserData({...newUserData, lastName: e.target.value})}
                       required
@@ -709,7 +719,9 @@ export default function EditAccountPage() {
                   <Label htmlFor="userEmail">Email *</Label>
                   <Input
                     id="userEmail"
+                    name="userEmail"
                     type="email"
+                    autoComplete="email"
                     value={newUserData.email}
                     onChange={(e) => setNewUserData({...newUserData, email: e.target.value})}
                     required

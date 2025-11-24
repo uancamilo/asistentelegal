@@ -311,6 +311,8 @@ export default function AnalyticsPage() {
 
                 {!useCustomRange ? (
                   <select
+                    id="date-range"
+                    name="date-range"
                     value={days}
                     onChange={(e) => setDays(Number(e.target.value))}
                     className="w-full px-3 py-1.5 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white text-sm text-gray-700 cursor-pointer"
@@ -323,8 +325,10 @@ export default function AnalyticsPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
-                        <label className="block text-xs text-gray-500 mb-1">Fecha Inicio</label>
+                        <label htmlFor="start-date" className="block text-xs text-gray-500 mb-1">Fecha Inicio</label>
                         <input
+                          id="start-date"
+                          name="start-date"
                           type="date"
                           value={startDate}
                           onChange={(e) => setStartDate(e.target.value)}
@@ -332,8 +336,10 @@ export default function AnalyticsPage() {
                         />
                       </div>
                       <div className="flex-1">
-                        <label className="block text-xs text-gray-500 mb-1">Fecha Fin</label>
+                        <label htmlFor="end-date" className="block text-xs text-gray-500 mb-1">Fecha Fin</label>
                         <input
+                          id="end-date"
+                          name="end-date"
                           type="date"
                           value={endDate}
                           onChange={(e) => setEndDate(e.target.value)}
