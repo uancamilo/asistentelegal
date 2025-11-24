@@ -63,10 +63,10 @@ export default function CuentaPage() {
 
   if (loading) {
     return (
-      <ComponentLoadingIndicator 
-        message="Cargando información de la cuenta" 
-        size="md" 
-        height="md" 
+      <ComponentLoadingIndicator
+        message="Cargando información de la cuenta"
+        size="lg"
+        height="lg"
       />
     )
   }

@@ -24,6 +24,7 @@ import { useToast } from '@/components/ui/toast'
 import apiClient from '@/lib/api/client'
 import { Search, Filter, ChevronDown, ChevronUp } from 'lucide-react'
 import type { AuditLog, AuditAction, AuditResource } from '@/lib/types'
+import { ComponentLoadingIndicator } from '@/components/ui/LoadingIndicator'
 
 export default function AuditLogsPage() {
   const { addToast } = useToast()
@@ -76,9 +77,11 @@ export default function AuditLogsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Cargando logs de auditoría...</p>
-      </div>
+      <ComponentLoadingIndicator
+        message="Cargando logs de auditoría"
+        size="lg"
+        height="lg"
+      />
     )
   }
 

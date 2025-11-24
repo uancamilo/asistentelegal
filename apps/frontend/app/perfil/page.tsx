@@ -41,10 +41,10 @@ export default function PerfilPage() {
 
   if (loading) {
     return (
-      <ComponentLoadingIndicator 
-        message="Cargando perfil" 
-        size="md" 
-        height="md" 
+      <ComponentLoadingIndicator
+        message="Cargando perfil"
+        size="lg"
+        height="lg"
       />
     )
   }

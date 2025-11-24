@@ -20,6 +20,7 @@ import apiClient from '@/lib/api/client'
 import { Plus, Search, Edit, Trash2 } from 'lucide-react'
 import type { Account } from '@/lib/types'
 import { translateAccountStatus } from '@/lib/translations'
+import { ComponentLoadingIndicator } from '@/components/ui/LoadingIndicator'
 
 export default function AccountsPage() {
   const router = useRouter()
@@ -88,9 +89,11 @@ export default function AccountsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Cargando cuentas...</p>
-      </div>
+      <ComponentLoadingIndicator
+        message="Cargando cuentas"
+        size="lg"
+        height="lg"
+      />
     )
   }
 

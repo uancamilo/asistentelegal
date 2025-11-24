@@ -26,6 +26,7 @@ import apiClient from '@/lib/api/client'
 import { Search, Edit, UserX, UserCheck } from 'lucide-react'
 import type { User, Role, UserStatus } from '@/lib/types'
 import { translateRole, translateUserStatus } from '@/lib/translations'
+import { ComponentLoadingIndicator } from '@/components/ui/LoadingIndicator'
 
 export default function UsersPage() {
   const router = useRouter()
@@ -105,9 +106,11 @@ export default function UsersPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Cargando usuarios...</p>
-      </div>
+      <ComponentLoadingIndicator
+        message="Cargando usuarios"
+        size="lg"
+        height="lg"
+      />
     )
   }
 
