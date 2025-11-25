@@ -1,0 +1,32 @@
+// ============================================
+// SCHEMA.PRISMA FRAGMENT - INSERT INTO model Document
+// Location: After line 278 (after keywords field), before line 280 (before // Auditoría)
+// ============================================
+
+  // --- NEW FIELDS FOR URL INGESTION & PROCESSING ---
+
+  // Source tracking (for URL/PDF ingestion)
+  sourceUrl String? // URL origen del documento (si fue importado)
+
+  // Processing status tracking
+  processingStatus ProcessingStatus @default(MANUAL) // Estado del procesamiento de contenido
+  embeddingStatus  ProcessingStatus @default(PENDING) // Estado de generación de embeddings
+  embeddingError   String? @db.Text // Mensaje de error si embedding falló
+
+  // Human review tracking
+  reviewedBy      String? // Usuario que revisó el documento
+  reviewedAt      DateTime? // Fecha de revisión
+  rejectionReason String? @db.Text // Motivo de rechazo (si aplica)
+
+  // --- END NEW FIELDS ---
+
+// ============================================
+// ADD TO RELATIONS SECTION (after line 291, after publisher relation)
+// ============================================
+
+  reviewer  User? @relation("DocumentReviewer", fields: [reviewedBy], references: [id])
+
+// ============================================
+// NOTE: Also add to User model the inverse relation:
+// ============================================
+// reviewedDocuments Document[] @relation("DocumentReviewer")
