@@ -16,7 +16,8 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast'
 import apiClient from '@/lib/api/client'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
+import { ComponentLoadingIndicator } from '@/components/ui/LoadingIndicator'
 import type { User, Role, UserStatus } from '@/lib/types'
 import { translateRole, translateUserStatus } from '@/lib/translations'
 
@@ -105,9 +106,7 @@ export default function EditUserPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <ComponentLoadingIndicator message="Cargando usuario" size="lg" height="lg" />
     )
   }
 

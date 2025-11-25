@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../lib/hooks/useAuth';
+import { useAuth } from '@/lib/useAuth';
 import { TrendingUp, AlertCircle, ShieldAlert, FileText, Eye, Activity, BarChart3, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import axios from 'axios';
+import { ComponentLoadingIndicator, ModalLoadingIndicator } from '@/components/ui/LoadingIndicator';
+import apiClient from '@/lib/api/client';
+import type { ApiError } from '@/lib/types';
 
 interface TopQuery {
   query: string;
@@ -107,26 +109,18 @@ export default function AnalyticsPage() {
       }
 
       const [topQueriesRes, zeroResultsRes, topDocsRes] = await Promise.all([
-        axios.get(`${apiUrl}/search/analytics/top-queries`, {
-          params,
-          withCredentials: true,
-        }),
-        axios.get(`${apiUrl}/search/analytics/zero-results-queries`, {
-          params: zeroResultParams,
-          withCredentials: true,
-        }),
-        axios.get(`${apiUrl}/search/analytics/top-viewed-documents`, {
-          params,
-          withCredentials: true,
-        }),
+        apiClient.get(`/search/analytics/top-queries`, { params }),
+        apiClient.get(`/search/analytics/zero-results-queries`, { params: zeroResultParams }),
+        apiClient.get(`/search/analytics/top-viewed-documents`, { params }),
       ]);
 
       setTopQueries(topQueriesRes.data);
       setZeroResultQueries(zeroResultsRes.data);
       setTopDocuments(topDocsRes.data);
-    } catch (err: any) {
-      console.error('Error loading analytics:', err);
-      setError(err.response?.data?.message || 'Error cargando analytics');
+    } catch (err) {
+      const error = err as ApiError;
+      console.error('Error loading analytics:', error);
+      setError(error.response?.data?.message || 'Error cargando analytics');
     } finally {
       setLoading(false);
     }
@@ -224,44 +218,34 @@ export default function AnalyticsPage() {
   // Si está verificando autenticación
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mb-4"></div>
-          <p className="text-gray-600">Verificando permisos...</p>
-        </div>
-      </div>
+      <ComponentLoadingIndicator 
+        message="Verificando permisos" 
+        size="lg"
+        height="lg"
+      />
     );
   }
 
   // Si no es SUPER_ADMIN
   if (!user || user.role !== 'SUPER_ADMIN') {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-red-50">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
-          <ShieldAlert className="mx-auto text-red-500 mb-4" size={64} />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Acceso Restringido</h2>
-          <p className="text-gray-600">Esta página solo está disponible para Super Administradores.</p>
-        </div>
-      </div>
-    );
+    return null; // El redirect ya se maneja en el useEffect
   }
 
   // Si está cargando datos
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mb-4"></div>
-          <p className="text-gray-600">Cargando analytics...</p>
-        </div>
-      </div>
+      <ComponentLoadingIndicator 
+        message="Cargando analytics" 
+        size="lg"
+        height="lg"
+      />
     );
   }
 
   // Si hay error
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
           <div className="flex items-center gap-3 mb-2">
             <AlertCircle className="text-red-500" size={24} />
@@ -270,7 +254,7 @@ export default function AnalyticsPage() {
           <p className="text-red-700">{error}</p>
           <button
             onClick={() => loadAnalytics()}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
           >
             Reintentar
           </button>
@@ -327,6 +311,8 @@ export default function AnalyticsPage() {
 
                 {!useCustomRange ? (
                   <select
+                    id="date-range"
+                    name="date-range"
                     value={days}
                     onChange={(e) => setDays(Number(e.target.value))}
                     className="w-full px-3 py-1.5 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white text-sm text-gray-700 cursor-pointer"
@@ -339,8 +325,10 @@ export default function AnalyticsPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
-                        <label className="block text-xs text-gray-500 mb-1">Fecha Inicio</label>
+                        <label htmlFor="start-date" className="block text-xs text-gray-500 mb-1">Fecha Inicio</label>
                         <input
+                          id="start-date"
+                          name="start-date"
                           type="date"
                           value={startDate}
                           onChange={(e) => setStartDate(e.target.value)}
@@ -348,8 +336,10 @@ export default function AnalyticsPage() {
                         />
                       </div>
                       <div className="flex-1">
-                        <label className="block text-xs text-gray-500 mb-1">Fecha Fin</label>
+                        <label htmlFor="end-date" className="block text-xs text-gray-500 mb-1">Fecha Fin</label>
                         <input
+                          id="end-date"
+                          name="end-date"
                           type="date"
                           value={endDate}
                           onChange={(e) => setEndDate(e.target.value)}

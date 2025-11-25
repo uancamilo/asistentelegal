@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/toast'
 import DocumentForm from '@/components/documents/DocumentForm'
 import { getDocumentById } from '@/lib/api/documents'
 import type { Document } from '@/lib/types'
+import { ComponentLoadingIndicator } from '@/components/ui/LoadingIndicator'
 
 export default function EditDocumentPage({ params }: { params: Promise<{ id: string }> }) {
   // NEXT.JS 15 FIX: Unwrap params Promise using React.use()
@@ -38,9 +39,11 @@ export default function EditDocumentPage({ params }: { params: Promise<{ id: str
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <p className="text-center text-gray-500">Cargando documento...</p>
-      </div>
+      <ComponentLoadingIndicator
+        message="Cargando documento"
+        size="lg"
+        height="lg"
+      />
     )
   }
 

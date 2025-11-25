@@ -1,33 +1,11 @@
 'use client'
 
-import { createContext, useState, useEffect, ReactNode } from 'react'
-import axios from 'axios'
+import { createContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
+import apiClient from './api/client'
+import { getCompleteProfile } from './api/profile'
 
-export interface User {
-  id: string
-  email: string
-  firstName: string
-  lastName: string
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'ACCOUNT_OWNER' | 'MEMBER'
-  status: 'ACTIVE' | 'SUSPENDED' | string
-}
-
-export interface LoginData {
-  user: User
-}
-
-export interface AuthContextType {
-  user: User | null
-  isLoading: boolean
-  login: (data: LoginData) => void
-  logout: () => Promise<void>
-  refreshAccessToken: () => Promise<boolean>
-  getUserRole: () => User['role'] | undefined
-  getUserStatus: () => string | undefined
-  isUserActive: () => boolean
-  getRedirectPath: (role: string) => string
-  validateUserAccess: (user: User | null) => { valid: boolean; reason?: string }
-}
+import type { User, Role, LoginData, AuthContextType, CompleteProfile } from './types'
 
 export const AuthContext = createContext<AuthContextType | null>(null)
 
@@ -35,7 +13,7 @@ interface AuthProviderProps {
   children: ReactNode
 }
 
-const roleRedirects: Record<User['role'], string> = {
+const roleRedirects: Record<Role, string> = {
   SUPER_ADMIN: '/super-admin',
   ADMIN: '/admin',
   EDITOR: '/editor',
@@ -46,13 +24,33 @@ const roleRedirects: Record<User['role'], string> = {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false)
+  const [completeProfile, setCompleteProfile] = useState<CompleteProfile | null>(null)
+  const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(false)
+  const router = useRouter()
+
+  // Fetch complete profile (user + account) - centralized to avoid duplicate calls
+  const fetchProfile = useCallback(async (): Promise<void> => {
+    try {
+      setIsLoadingProfile(true)
+      const profile = await getCompleteProfile()
+      setCompleteProfile(profile)
+    } catch (error) {
+      console.warn('Could not fetch complete profile:', error)
+      setCompleteProfile(null)
+    } finally {
+      setIsLoadingProfile(false)
+    }
+  }, [])
+
+  // Public method to refresh profile when needed
+  const refreshProfile = useCallback(async (): Promise<void> => {
+    await fetchProfile()
+  }, [fetchProfile])
 
   const validateSession = async (): Promise<boolean> => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api'
-      const response = await axios.get(`${apiUrl}/auth/validate`, {
-        withCredentials: true,
-      })
+      const response = await apiClient.get('/auth/validate')
 
       if (response.status === 200 && response.data) {
         setUser(response.data)
@@ -63,6 +61,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch (error: any) {
       if (error.response?.status === 401 || error.response?.status === 403) {
         setUser(null)
+        setCompleteProfile(null)
       }
 
       return false
@@ -71,45 +70,56 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     const initializeAuth = async () => {
+      // No mostrar loader si estamos en proceso de logout
+      if (isLoggingOut) {
+        return
+      }
+
       try {
-        await validateSession()
+        const isValid = await validateSession()
+        // Fetch complete profile only if session is valid
+        if (isValid) {
+          await fetchProfile()
+        }
       } catch (error) {
         setUser(null)
+        setCompleteProfile(null)
       } finally {
         setIsLoading(false)
       }
     }
 
     initializeAuth()
-  }, [])
+  }, [isLoggingOut, fetchProfile])
 
   const login = (data: LoginData) => {
     const { user: newUser } = data
     setUser(newUser)
+    // Fetch complete profile after login
+    fetchProfile()
   }
 
   const logout = async () => {
+    setIsLoggingOut(true)
+
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api'
-      await axios.post(`${apiUrl}/auth/logout`, {}, {
-        withCredentials: true,
-      })
+      await apiClient.post('/auth/logout', {})
     } catch (error) {
     } finally {
       setUser(null)
+      setCompleteProfile(null)
+      setIsLoading(false)
 
       if (typeof window !== 'undefined') {
-        window.location.href = '/login'
+        router.push('/login')
+        setIsLoggingOut(false)
       }
     }
   }
 
   const refreshAccessToken = async (): Promise<boolean> => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api'
-      const response = await axios.post(`${apiUrl}/auth/refresh`, {}, {
-        withCredentials: true,
-      })
+      const response = await apiClient.post('/auth/refresh')
 
       if (response.status === 200) {
         return true
@@ -118,28 +128,30 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return false
     } catch (error: any) {
       if (error.response?.status === 401 || error.response?.status === 403) {
-        await logout()
+        // No llamar logout() aquí para evitar bucles - solo limpiar estado
+        setUser(null)
+        setCompleteProfile(null)
       }
 
       return false
     }
   }
 
-  const getUserRole = (): User['role'] | undefined => {
+  const getUserRole = (): Role | undefined => {
     return user?.role
   }
 
   const getUserStatus = (): string | undefined => {
-    return user?.status
+    return user?.status.toString()
   }
 
   const isUserActive = (): boolean => {
-    return user?.status === 'ACTIVE'
+    return user?.status.toString() === 'ACTIVE'
   }
 
   const getRedirectPath = (role: string): string => {
     if (role in roleRedirects) {
-      return roleRedirects[role as User['role']]
+      return roleRedirects[role as Role]
     }
 
     return '/admin'
@@ -150,10 +162,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return { valid: false, reason: 'not_authenticated' }
     }
 
-    if (user.status !== 'ACTIVE') {
+    if (user.status.toString() !== 'ACTIVE') {
       return {
         valid: false,
-        reason: user.status === 'SUSPENDED' ? 'suspended' : 'invalid_status',
+        reason: user.status.toString() === 'SUSPENDED' ? 'suspended' : 'invalid_status',
       }
     }
 
@@ -163,9 +175,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const contextValue: AuthContextType = {
     user,
     isLoading,
+    completeProfile,
+    isLoadingProfile,
     login,
     logout,
     refreshAccessToken,
+    refreshProfile,
     getUserRole,
     getUserStatus,
     isUserActive,

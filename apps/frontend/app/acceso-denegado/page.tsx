@@ -3,6 +3,7 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ShieldAlert, ArrowLeft, Home } from 'lucide-react';
 import { useEffect, useState, Suspense } from 'react';
+import { ModalLoadingIndicator } from '@/components/ui/LoadingIndicator';
 
 function AccesoDenegadoContent() {
   const searchParams = useSearchParams();
@@ -114,10 +115,7 @@ export default function AccesoDenegadoPage() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-screen bg-red-50">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mb-4"></div>
-          <p className="text-gray-600">Cargando...</p>
-        </div>
+        <ModalLoadingIndicator message="Cargando" size="lg" />
       </div>
     }>
       <AccesoDenegadoContent />

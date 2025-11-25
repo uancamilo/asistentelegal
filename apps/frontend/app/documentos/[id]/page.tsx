@@ -4,10 +4,11 @@ import { use, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
-import { ArrowLeft, FileText } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import DocumentViewer from '@/components/documents/DocumentViewer'
 import { getDocumentById } from '@/lib/api/documents'
 import type { Document } from '@/lib/types'
+import { ComponentLoadingIndicator } from '@/components/ui/LoadingIndicator'
 
 export default function PublicDocumentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   // NEXT.JS 15 FIX: Unwrap params Promise using React.use()
@@ -43,12 +44,11 @@ export default function PublicDocumentDetailPage({ params }: { params: Promise<{
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col items-center justify-center py-12">
-          <FileText className="h-12 w-12 text-gray-400 animate-pulse mb-4" />
-          <p className="text-center text-gray-500">Cargando documento...</p>
-        </div>
-      </div>
+      <ComponentLoadingIndicator
+        message="Cargando documento"
+        size="lg"
+        height="lg"
+      />
     )
   }
 

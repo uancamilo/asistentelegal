@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
+import { PageLoadingIndicator } from '@/components/ui/LoadingIndicator'
 import { useAuth } from '@/lib/useAuth'
-import { Loader2 } from 'lucide-react'
 import { Role } from '@/lib/types'
 
 interface ProtectedLayoutProps {
@@ -60,12 +60,7 @@ export function ProtectedLayout({ children, allowedRoles }: ProtectedLayoutProps
   // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
-          <p className="text-muted-foreground">Verificando autenticación...</p>
-        </div>
-      </div>
+      <PageLoadingIndicator message="Verificando autenticación" />
     )
   }
 

@@ -36,83 +36,11 @@ export enum AccountStatus {
 export interface Account {
   id: string;
   name: string;
-  ownerId: string | null;
-  createdBy: string;
   status: AccountStatus;
-  maxUsers: number | null;
+  ownerId: string | null;
   isSystemAccount: boolean;
   createdAt: string;
   updatedAt: string;
-  owner?: User;
-  creator?: {
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
-}
-
-// Audit Log Types
-export enum AuditAction {
-  CREATE = 'CREATE',
-  UPDATE = 'UPDATE',
-  DELETE = 'DELETE',
-  ACCESS_DENIED = 'ACCESS_DENIED',
-}
-
-export enum AuditResource {
-  ACCOUNT = 'ACCOUNT',
-  USER = 'USER',
-}
-
-export interface AuditLog {
-  id: string;
-  userId: string;
-  userEmail: string;
-  userRole: string;
-  action: AuditAction;
-  resource: AuditResource;
-  resourceId: string;
-  resourceName: string | null;
-  details: Record<string, any> | null;
-  ipAddress: string | null;
-  userAgent: string | null;
-  success: boolean;
-  errorMessage: string | null;
-  createdAt: string;
-}
-
-// Auth Types
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
-  user: User;
-}
-
-export interface RefreshTokenRequest {
-  refreshToken: string;
-}
-
-export interface RefreshTokenResponse {
-  accessToken: string;
-}
-
-// API Response Types
-export interface ApiError {
-  message: string;
-  statusCode: number;
-  error?: string;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  pageSize: number;
 }
 
 // Document Types
@@ -132,34 +60,18 @@ export enum DocumentType {
   OTRO = 'OTRO',
 }
 
-export enum DocumentStatus {
-  DRAFT = 'DRAFT',
-  PUBLISHED = 'PUBLISHED',
-  ARCHIVED = 'ARCHIVED',
-}
-
 export enum DocumentScope {
+  INTERNACIONAL = 'INTERNACIONAL',
   NACIONAL = 'NACIONAL',
   REGIONAL = 'REGIONAL',
   MUNICIPAL = 'MUNICIPAL',
   LOCAL = 'LOCAL',
-  INTERNACIONAL = 'INTERNACIONAL',
 }
 
-export enum DocumentRelationType {
-  DEROGA = 'DEROGA',
-  MODIFICA = 'MODIFICA',
-  COMPLEMENTA = 'COMPLEMENTA',
-  SUSTITUYE = 'SUSTITUYE',
-  ACLARA = 'ACLARA',
-  REGLAMENTA = 'REGLAMENTA',
-}
-
-export enum ProcessingStatus {
-  PENDING = 'PENDING',
-  PROCESSING = 'PROCESSING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
+export enum DocumentStatus {
+  DRAFT = 'DRAFT',
+  PUBLISHED = 'PUBLISHED',
+  ARCHIVED = 'ARCHIVED',
 }
 
 export interface Document {
@@ -167,136 +79,311 @@ export interface Document {
   title: string;
   documentNumber: string | null;
   type: DocumentType;
-  hierarchyLevel: number;
   scope: DocumentScope;
-  issuingEntity: string;
-  isActive: boolean;
   status: DocumentStatus;
+  issuingEntity: string;
   summary: string | null;
-  keywords: string[];
+  fullText: string | null;
+  keywords: string[] | null;
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  fullText?: string | null;
-  createdBy?: string;
-  updatedBy?: string | null;
-  publishedBy?: string | null;
-}
-
-export interface DocumentFile {
-  id: string;
-  documentId: string;
-  fileName: string;
-  fileSize: number;
-  mimeType: string;
-  storageUrl: string;
-  version: number;
   isActive: boolean;
-  uploadedBy: string;
-  processingStatus: ProcessingStatus;
-  processingError: string | null;
-  createdAt: string;
-}
-
-export interface DocumentRelation {
-  id: string;
-  sourceDocumentId: string;
-  targetDocumentId: string;
-  relationType: DocumentRelationType;
-  description: string | null;
-  createdAt: string;
+  hierarchyLevel?: number;
 }
 
 export interface CreateDocumentRequest {
   title: string;
   documentNumber?: string;
   type: DocumentType;
-  scope?: DocumentScope;
+  scope: DocumentScope;
   issuingEntity: string;
   summary?: string;
   fullText?: string;
   keywords?: string[];
 }
 
-export interface UpdateDocumentRequest {
-  title?: string;
-  documentNumber?: string;
-  type?: DocumentType;
-  scope?: DocumentScope;
-  issuingEntity?: string;
-  summary?: string;
-  fullText?: string;
-  keywords?: string[];
+export interface UpdateDocumentRequest extends Partial<CreateDocumentRequest> {
   status?: DocumentStatus;
-  isActive?: boolean;
 }
 
-export interface FilterDocumentsRequest {
+export interface DocumentSearchFilters {
+  query?: string;
   type?: DocumentType;
-  status?: DocumentStatus;
   scope?: DocumentScope;
-  isActive?: boolean;
-  searchText?: string;
-  page?: number;
+  status?: DocumentStatus;
   limit?: number;
-  sortBy?: 'createdAt' | 'updatedAt' | 'publishedAt' | 'hierarchyLevel' | 'title';
-  sortOrder?: 'asc' | 'desc';
+  page?: number;
 }
 
-export interface DocumentListResponse {
-  documents: Document[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface DocumentStatistics {
-  totalDocuments: number;
-  publishedDocuments: number;
-  draftDocuments: number;
-  archivedDocuments: number;
-  byType: Record<DocumentType, number>;
-  byScope: Record<DocumentScope, number>;
-}
-
-// Search Types (Semantic + Hybrid with OpenAI)
+// Search Types
 export interface SearchResult {
   id: string;
   title: string;
   documentNumber: string | null;
   type: DocumentType;
-  hierarchyLevel: number;
   scope: DocumentScope;
-  issuingEntity: string;
   status: DocumentStatus;
+  issuingEntity: string;
   summary: string | null;
-  keywords: string[];
+  excerpt?: string;
+  score?: number;
   publishedAt: string | null;
-  similarity: number; // Cosine similarity score (0-1)
-  relevanceScore: number; // Combined score for hybrid search
-  matchType: 'semantic' | 'keyword' | 'hybrid';
-  excerpt?: string; // Relevant excerpt from fullText
-}
-
-export interface SemanticSearchRequest {
-  query: string;
-  limit?: number;
-  similarityThreshold?: number;
-  type?: DocumentType;
-  scope?: DocumentScope;
-  onlyActive?: boolean;
-}
-
-export interface HybridSearchRequest extends SemanticSearchRequest {
-  semanticWeight?: number; // 0-1, default 0.7
-  includeKeywordSearch?: boolean; // default true
+  createdAt: string;
+  updatedAt: string;
+  fullText: string | null;
+  isActive: boolean;
 }
 
 export interface SearchResponse {
   results: SearchResult[];
   total: number;
+  executionTime: number | null;
   query: string;
-  executionTime: number; // milliseconds
-  searchType: 'semantic' | 'hybrid';
+  isSemanticSearch?: boolean;
+}
+
+export interface DocumentsResponse {
+  documents: Document[];
+  total: number;
+  totalPages: number;
+  page: number;
+  limit: number;
+}
+
+// API Error Types
+export interface ApiErrorResponse {
+  message: string;
+  error?: string;
+  statusCode: number;
+  timestamp: string;
+  path: string;
+}
+
+export interface ApiError {
+  response?: {
+    data?: ApiErrorResponse;
+    status?: number;
+    statusText?: string;
+  };
+  message?: string;
+  code?: string;
+}
+
+// Toast/Notification Types
+export interface ToastMessage {
+  title: string;
+  description?: string;
+  variant?: 'default' | 'destructive' | 'success';
+  duration?: number;
+}
+
+// Loading Indicator Types
+export type LoadingSize = 'sm' | 'md' | 'lg';
+export type LoadingHeight = 'sm' | 'md' | 'lg';
+export type LoadingBackground = 'default' | 'gradient';
+
+export interface LoadingIndicatorProps {
+  message?: string;
+  size?: LoadingSize;
+  className?: string;
+  center?: boolean;
+  inline?: boolean;
+}
+
+export interface PageLoadingIndicatorProps {
+  message?: string;
+  size?: LoadingSize;
+  className?: string;
+  background?: LoadingBackground;
+}
+
+export interface ComponentLoadingIndicatorProps {
+  message?: string;
+  size?: LoadingSize;
+  height?: LoadingHeight;
+  className?: string;
+}
+
+export interface ModalLoadingIndicatorProps {
+  message?: string;
+  size?: LoadingSize;
+  className?: string;
+}
+
+export interface ButtonLoadingIndicatorProps {
+  message?: string;
+  size?: LoadingSize;
+}
+
+// Audit Types
+export enum AuditAction {
+  CREATE = 'CREATE',
+  UPDATE = 'UPDATE',
+  DELETE = 'DELETE',
+  LOGIN = 'LOGIN',
+  LOGOUT = 'LOGOUT',
+  INVITE = 'INVITE',
+  ACTIVATE = 'ACTIVATE'
+}
+
+export enum AuditResource {
+  USER = 'USER',
+  ACCOUNT = 'ACCOUNT',
+  DOCUMENT = 'DOCUMENT',
+  SESSION = 'SESSION',
+  INVITATION = 'INVITATION'
+}
+
+export interface AuditLog {
+  id: string;
+  userId: string;
+  action: AuditAction;
+  resource: AuditResource;
+  resourceId?: string;
+  success: boolean;
+  ipAddress?: string;
+  details?: Record<string, any>;
+  errorMessage?: string;
+  createdAt: string;
+}
+
+// Profile Types (API response - uses string literals for compatibility)
+export interface UserProfile {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  role: string;
+  status: string;
+  accountId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AccountData {
+  id: string;
+  name: string;
+  ownerId: string | null;
+  createdBy: string;
+  status: 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+  isSystemAccount: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CompleteProfile {
+  user: UserProfile;
+  account: AccountData | null;
+}
+
+// Authentication Types
+export interface LoginData {
+  user: User;
+}
+
+export interface AuthContextType {
+  user: User | null;
+  isLoading: boolean;
+  completeProfile: CompleteProfile | null;
+  isLoadingProfile: boolean;
+  login: (data: LoginData) => void;
+  logout: () => Promise<void>;
+  refreshAccessToken: () => Promise<boolean>;
+  refreshProfile: () => Promise<void>;
+  getUserRole: () => Role | undefined;
+  getUserStatus: () => string | undefined;
+  isUserActive: () => boolean;
+  getRedirectPath: (role: string) => string;
+  validateUserAccess: (user: User | null) => { valid: boolean; reason?: string };
+}
+
+// Dashboard Types
+export interface DashboardStats {
+  totalDocuments: number;
+  totalUsers: number;
+  totalAuditLogs: number;
+  recentActivity: AuditLog[];
+}
+
+// Form Types
+export interface LoginFormData {
+  email: string;
+  password: string;
+}
+
+export interface InviteUserFormData {
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: Role;
+}
+
+// Invitation Types
+export interface InvitationData {
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  accountName: string;
+  invitedBy: string;
+}
+
+export type PageState = 'validating' | 'valid' | 'invalid' | 'submitting' | 'success' | 'error';
+
+// Document API Types (Additional)
+export interface DocumentListResponse {
+  documents: Document[];
+  total: number;
+  totalPages: number;
+  page: number;
+  limit: number;
+}
+
+export interface FilterDocumentsRequest {
+  query?: string;
+  type?: DocumentType;
+  status?: DocumentStatus;
+  scope?: DocumentScope;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  isActive?: boolean;
+  searchText?: string;
+}
+
+export interface DocumentStatistics {
+  totalDocuments: number;
+  totalPublished: number;
+  totalDrafts: number;
+  totalArchived: number;
+  documentsByType: Record<DocumentType, number>;
+  documentsByScope: Record<DocumentScope, number>;
+}
+
+export interface DocumentFile {
+  id: string;
+  documentId: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  createdAt: string;
+}
+
+export interface SemanticSearchRequest {
+  query: string;
+  type?: DocumentType;
+  scope?: DocumentScope;
+  limit?: number;
+  threshold?: number;
+}
+
+export interface HybridSearchRequest extends SemanticSearchRequest {
+  useSemanticSearch: boolean;
+  semanticWeight?: number;
+  includeKeywordSearch?: boolean;
 }

@@ -1,42 +1,8 @@
 import apiClient from './client'
+import type { UserProfile, AccountData, CompleteProfile } from '../types'
 
-/**
- * User profile data from GET /users/me
- */
-export interface UserProfile {
-  id: string
-  email: string
-  firstName: string
-  lastName: string
-  fullName: string
-  role: string
-  status: string
-  accountId: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-/**
- * Account data from GET /accounts/:id
- */
-export interface AccountData {
-  id: string
-  name: string
-  ownerId: string | null
-  createdBy: string
-  status: 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
-  isSystemAccount: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-/**
- * Complete profile with user and account data
- */
-export interface CompleteProfile {
-  user: UserProfile
-  account: AccountData | null
-}
+// Re-export types for backward compatibility
+export type { UserProfile, AccountData, CompleteProfile }
 
 /**
  * Get current user's profile

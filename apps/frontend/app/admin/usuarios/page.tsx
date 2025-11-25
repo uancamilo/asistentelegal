@@ -26,6 +26,7 @@ import apiClient from '@/lib/api/client'
 import { Search, Edit, UserX, UserCheck } from 'lucide-react'
 import type { User, Role, UserStatus } from '@/lib/types'
 import { translateRole, translateUserStatus } from '@/lib/translations'
+import { ComponentLoadingIndicator } from '@/components/ui/LoadingIndicator'
 
 export default function UsersPage() {
   const router = useRouter()
@@ -105,9 +106,11 @@ export default function UsersPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Cargando usuarios...</p>
-      </div>
+      <ComponentLoadingIndicator
+        message="Cargando usuarios"
+        size="lg"
+        height="lg"
+      />
     )
   }
 
@@ -130,14 +133,17 @@ export default function UsersPage() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
+                id="search-users"
+                name="search-users"
+                type="search"
                 placeholder="Buscar usuarios..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
               />
             </div>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+            <Select name="role-filter" value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger id="role-filter" className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filtrar por rol" />
               </SelectTrigger>
               <SelectContent>
@@ -149,8 +155,8 @@ export default function UsersPage() {
                 <SelectItem value="MEMBER">Miembro</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+            <Select name="status-filter" value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger id="status-filter" className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filtrar por estado" />
               </SelectTrigger>
               <SelectContent>

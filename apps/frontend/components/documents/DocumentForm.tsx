@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast'
+import { ButtonLoadingIndicator } from '@/components/ui/LoadingIndicator'
 import { Save, ArrowLeft } from 'lucide-react'
 import { createDocument, updateDocument } from '@/lib/api/documents'
 import type { Document, DocumentType, DocumentScope, CreateDocumentRequest, UpdateDocumentRequest } from '@/lib/types'
@@ -233,6 +234,7 @@ export default function DocumentForm({ document, mode, onSuccess, redirectPath }
             <Label htmlFor="summary">Resumen</Label>
             <textarea
               id="summary"
+              name="summary"
               value={formData.summary}
               onChange={(e) => handleChange('summary', e.target.value)}
               placeholder="Breve descripción del documento..."
@@ -247,6 +249,7 @@ export default function DocumentForm({ document, mode, onSuccess, redirectPath }
             <Label htmlFor="fullText">Texto Completo</Label>
             <textarea
               id="fullText"
+              name="fullText"
               value={formData.fullText}
               onChange={(e) => handleChange('fullText', e.target.value)}
               placeholder="Contenido completo del documento legal..."
@@ -277,8 +280,14 @@ export default function DocumentForm({ document, mode, onSuccess, redirectPath }
               Cancelar
             </Button>
             <Button type="submit" disabled={loading}>
-              <Save className="h-4 w-4 mr-2" />
-              {loading ? 'Guardando...' : (mode === 'create' ? 'Crear Documento' : 'Guardar Cambios')}
+              {loading ? (
+                <ButtonLoadingIndicator message="Guardando" size="sm" />
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  {mode === 'create' ? 'Crear Documento' : 'Guardar Cambios'}
+                </>
+              )}
             </Button>
           </div>
         </form>

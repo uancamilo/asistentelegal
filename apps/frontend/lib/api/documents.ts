@@ -176,6 +176,7 @@ export const smartSearch = async (
     query,
     limit: filters?.limit || 20,
     semanticWeight: 0.7, // 70% semantic, 30% keyword
+    useSemanticSearch: true,
     includeKeywordSearch: true,
   };
 

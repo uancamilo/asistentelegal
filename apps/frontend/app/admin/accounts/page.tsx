@@ -20,6 +20,7 @@ import apiClient from '@/lib/api/client'
 import { Plus, Search, Edit, Trash2 } from 'lucide-react'
 import type { Account } from '@/lib/types'
 import { translateAccountStatus } from '@/lib/translations'
+import { ComponentLoadingIndicator } from '@/components/ui/LoadingIndicator'
 
 export default function AccountsPage() {
   const router = useRouter()
@@ -88,9 +89,11 @@ export default function AccountsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Cargando cuentas...</p>
-      </div>
+      <ComponentLoadingIndicator
+        message="Cargando cuentas"
+        size="lg"
+        height="lg"
+      />
     )
   }
 
@@ -119,6 +122,9 @@ export default function AccountsPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
+                id="search-accounts"
+                name="search-accounts"
+                type="search"
                 placeholder="Buscar cuentas..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}

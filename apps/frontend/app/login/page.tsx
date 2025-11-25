@@ -3,10 +3,13 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import axios from 'axios'
+import apiClient from '@/lib/api/client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/useAuth'
+import { ModalLoadingIndicator, ButtonLoadingIndicator } from '@/components/ui/LoadingIndicator'
+import { cn } from '@/lib/utils'
+import type { ApiError } from '@/lib/types'
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -67,12 +70,9 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api'
-      const response = await axios.post(`${apiUrl}/auth/login`, {
+      const response = await apiClient.post('/auth/login', {
         email: data.email,
         password: data.password,
-      }, {
-        withCredentials: true, // Incluir cookies en la petición
       })
 
       const { user } = response.data // Tokens ahora están en HttpOnly cookies
@@ -89,10 +89,11 @@ export default function LoginPage() {
       // 3. REDIRECCIÓN CONDICIONAL POR ROL
       const redirectPath = getRedirectPathByRole(user.role)
       router.push(redirectPath)
-    } catch (err: any) {
-      if (err.response?.status === 401) {
+    } catch (err) {
+      const error = err as ApiError;
+      if (error.response?.status === 401) {
         setError('Credenciales inválidas')
-      } else if (err.response?.status === 400) {
+      } else if (error.response?.status === 400) {
         setError('Datos de login inválidos')
       } else {
         setError('Error al conectar con el servidor')
@@ -105,86 +106,61 @@ export default function LoginPage() {
   // Mostrar loading mientras se valida la sesión o si ya está autenticado
   if (isAuthLoading || user) {
     return (
-      <div style={{
-        maxWidth: '400px',
-        margin: '4rem auto',
-        padding: '2rem',
-        fontFamily: 'system-ui',
-        textAlign: 'center'
-      }}>
-        <div style={{ marginBottom: '1rem' }}>Verificando autenticación...</div>
+      <div className="flex items-center justify-center min-h-screen">
+        <ModalLoadingIndicator 
+          message="Verificando autenticación" 
+          size="md"
+          className="max-w-md mx-4" 
+        />
       </div>
     )
   }
 
   return (
-    <div style={{
-      maxWidth: '400px',
-      margin: '4rem auto',
-      padding: '2rem',
-      fontFamily: 'system-ui',
-      border: '1px solid #ddd',
-      borderRadius: '8px'
-    }}>
-      <h1 style={{ marginBottom: '2rem' }}>Login</h1>
+    <div className="max-w-md mx-auto mt-16 p-6 border border-border rounded-lg bg-background">
+      <h1 className="text-2xl font-bold mb-6 text-foreground">Iniciar Sesión</h1>
 
-      <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }} suppressHydrationWarning={true}>
-        <div>
-          <label htmlFor="email" style={{ display: 'block', marginBottom: '0.5rem' }}>
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col space-y-4" suppressHydrationWarning={true}>
+        <div className="space-y-2">
+          <label htmlFor="email" className="block text-sm font-medium text-foreground">
             Email
           </label>
           <input
             id="email"
             type="email"
+            autoComplete="email"
             {...register('email')}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              fontSize: '1rem',
-              border: '1px solid #ccc',
-              borderRadius: '4px'
-            }}
+            className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
             suppressHydrationWarning={true}
           />
           {errors.email && (
-            <p style={{ color: 'red', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+            <p className="text-destructive text-sm mt-1">
               {errors.email.message}
             </p>
           )}
         </div>
 
-        <div>
-          <label htmlFor="password" style={{ display: 'block', marginBottom: '0.5rem' }}>
+        <div className="space-y-2">
+          <label htmlFor="password" className="block text-sm font-medium text-foreground">
             Contraseña
           </label>
           <input
             id="password"
             type="password"
+            autoComplete="current-password"
             {...register('password')}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              fontSize: '1rem',
-              border: '1px solid #ccc',
-              borderRadius: '4px'
-            }}
+            className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
             suppressHydrationWarning={true}
           />
           {errors.password && (
-            <p style={{ color: 'red', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+            <p className="text-destructive text-sm mt-1">
               {errors.password.message}
             </p>
           )}
         </div>
 
         {error && (
-          <div style={{
-            padding: '0.75rem',
-            backgroundColor: '#fee',
-            border: '1px solid #fcc',
-            borderRadius: '4px',
-            color: '#c00'
-          }}>
+          <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-md text-destructive text-sm">
             {error}
           </div>
         )}
@@ -192,17 +168,18 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={isLoading}
-          style={{
-            padding: '0.75rem',
-            fontSize: '1rem',
-            backgroundColor: isLoading ? '#ccc' : '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: isLoading ? 'not-allowed' : 'pointer'
-          }}
+          className={cn(
+            "w-full px-4 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+            isLoading 
+              ? "bg-muted text-muted-foreground cursor-not-allowed" 
+              : "bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+          )}
         >
-          {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+          {isLoading ? (
+            <ButtonLoadingIndicator message="Iniciando sesión" size="sm" />
+          ) : (
+            'Iniciar Sesión'
+          )}
         </button>
       </form>
     </div>

@@ -59,6 +59,7 @@ const fetcher = async (key: any[]): Promise<SearchResponse> => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       fullText: result.excerpt || null,
+      keywords: null,
       isActive: true,
     }))
 
