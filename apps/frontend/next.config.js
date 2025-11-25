@@ -64,6 +64,9 @@ const nextConfig = {
               // This is due to how Next.js injects styles and handles hydration
               const scriptSrc = "script-src 'self' 'unsafe-eval' 'unsafe-inline'";
               const styleSrc = "style-src 'self' 'unsafe-inline'";
+              const connectSrc = isDev
+                ? "connect-src 'self' ws: wss: " + baseApiUrl
+                : "connect-src 'self' " + baseApiUrl;
 
               return [
                 "default-src 'self'",
