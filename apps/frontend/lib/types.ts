@@ -248,15 +248,15 @@ export interface AuditLog {
   createdAt: string;
 }
 
-// Profile Types
+// Profile Types (API response - uses string literals for compatibility)
 export interface UserProfile {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
   fullName: string;
-  role: Role;
-  status: UserStatus;
+  role: string;
+  status: string;
   accountId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -267,7 +267,7 @@ export interface AccountData {
   name: string;
   ownerId: string | null;
   createdBy: string;
-  status: AccountStatus;
+  status: 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
   isSystemAccount: boolean;
   createdAt: string;
   updatedAt: string;
@@ -286,9 +286,12 @@ export interface LoginData {
 export interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  completeProfile: CompleteProfile | null;
+  isLoadingProfile: boolean;
   login: (data: LoginData) => void;
   logout: () => Promise<void>;
   refreshAccessToken: () => Promise<boolean>;
+  refreshProfile: () => Promise<void>;
   getUserRole: () => Role | undefined;
   getUserStatus: () => string | undefined;
   isUserActive: () => boolean;

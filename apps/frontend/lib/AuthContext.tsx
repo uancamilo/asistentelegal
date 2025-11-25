@@ -1,10 +1,11 @@
 'use client'
 
-import { createContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import apiClient from './api/client'
+import { getCompleteProfile } from './api/profile'
 
-import type { User, Role, LoginData, AuthContextType } from './types'
+import type { User, Role, LoginData, AuthContextType, CompleteProfile } from './types'
 
 export const AuthContext = createContext<AuthContextType | null>(null)
 
@@ -24,7 +25,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false)
+  const [completeProfile, setCompleteProfile] = useState<CompleteProfile | null>(null)
+  const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(false)
   const router = useRouter()
+
+  // Fetch complete profile (user + account) - centralized to avoid duplicate calls
+  const fetchProfile = useCallback(async (): Promise<void> => {
+    try {
+      setIsLoadingProfile(true)
+      const profile = await getCompleteProfile()
+      setCompleteProfile(profile)
+    } catch (error) {
+      console.warn('Could not fetch complete profile:', error)
+      setCompleteProfile(null)
+    } finally {
+      setIsLoadingProfile(false)
+    }
+  }, [])
+
+  // Public method to refresh profile when needed
+  const refreshProfile = useCallback(async (): Promise<void> => {
+    await fetchProfile()
+  }, [fetchProfile])
 
   const validateSession = async (): Promise<boolean> => {
     try {
@@ -39,6 +61,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch (error: any) {
       if (error.response?.status === 401 || error.response?.status === 403) {
         setUser(null)
+        setCompleteProfile(null)
       }
 
       return false
@@ -51,32 +74,40 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (isLoggingOut) {
         return
       }
-      
+
       try {
-        await validateSession()
+        const isValid = await validateSession()
+        // Fetch complete profile only if session is valid
+        if (isValid) {
+          await fetchProfile()
+        }
       } catch (error) {
         setUser(null)
+        setCompleteProfile(null)
       } finally {
         setIsLoading(false)
       }
     }
 
     initializeAuth()
-  }, [isLoggingOut])
+  }, [isLoggingOut, fetchProfile])
 
   const login = (data: LoginData) => {
     const { user: newUser } = data
     setUser(newUser)
+    // Fetch complete profile after login
+    fetchProfile()
   }
 
   const logout = async () => {
     setIsLoggingOut(true)
-    
+
     try {
       await apiClient.post('/auth/logout', {})
     } catch (error) {
     } finally {
       setUser(null)
+      setCompleteProfile(null)
       setIsLoading(false)
 
       if (typeof window !== 'undefined') {
@@ -99,6 +130,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (error.response?.status === 401 || error.response?.status === 403) {
         // No llamar logout() aquí para evitar bucles - solo limpiar estado
         setUser(null)
+        setCompleteProfile(null)
       }
 
       return false
@@ -143,9 +175,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const contextValue: AuthContextType = {
     user,
     isLoading,
+    completeProfile,
+    isLoadingProfile,
     login,
     logout,
     refreshAccessToken,
+    refreshProfile,
     getUserRole,
     getUserStatus,
     isUserActive,

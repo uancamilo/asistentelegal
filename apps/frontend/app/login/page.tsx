@@ -127,7 +127,6 @@ export default function LoginPage() {
           </label>
           <input
             id="email"
-            name="email"
             type="email"
             autoComplete="email"
             {...register('email')}
@@ -147,7 +146,6 @@ export default function LoginPage() {
           </label>
           <input
             id="password"
-            name="password"
             type="password"
             autoComplete="current-password"
             {...register('password')}

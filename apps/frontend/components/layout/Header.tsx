@@ -3,11 +3,10 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/useAuth'
-import { User, Role } from '@/lib/types'
+import { Role } from '@/lib/types'
 import { Settings, User as UserIcon, Menu, Building2, ChevronDown, LogOut, UserCircle } from 'lucide-react'
-import { getCompleteProfile, type CompleteProfile } from '@/lib/api/profile'
 import { cn } from '@/lib/utils'
-import { translateRole, translateAccountStatus } from '@/lib/translations'
+import { translateRole } from '@/lib/translations'
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -16,18 +15,9 @@ interface HeaderProps {
 
 export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
   const router = useRouter()
-  const { user, logout } = useAuth()
-  const [profile, setProfile] = useState<CompleteProfile | null>(null)
-  const [loadingProfile, setLoadingProfile] = useState(false)
+  const { user, logout, completeProfile } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
-
-  // Fetch complete profile on mount
-  useEffect(() => {
-    if (user) {
-      fetchCompleteProfile()
-    }
-  }, [user])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -40,17 +30,6 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
-
-  const fetchCompleteProfile = async () => {
-    try {
-      setLoadingProfile(true)
-      const data = await getCompleteProfile()
-      setProfile(data)
-    } catch (error) {
-    } finally {
-      setLoadingProfile(false)
-    }
-  }
 
   const getRoleBadge = (role: Role | string) => {
     const badges: Record<string, string> = {
@@ -180,7 +159,7 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
                   </button>
 
                   {/* Show Account option only for roles with access */}
-                  {['SUPER_ADMIN', 'ADMIN', 'ACCOUNT_OWNER'].includes(user.role) && profile?.account && (
+                  {['SUPER_ADMIN', 'ADMIN', 'ACCOUNT_OWNER'].includes(user.role) && completeProfile?.account && (
                     <button
                       onClick={() => navigateTo('/cuenta')}
                       className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -188,7 +167,7 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
                       <Building2 className="w-4 h-4 text-gray-400" />
                       <div className="flex flex-col items-start">
                         <span>Mi Cuenta</span>
-                        <span className="text-xs text-gray-500">{profile.account.name}</span>
+                        <span className="text-xs text-gray-500">{completeProfile.account.name}</span>
                       </div>
                     </button>
                   )}

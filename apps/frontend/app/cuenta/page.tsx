@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,18 +10,15 @@ import { useAuth } from '@/lib/useAuth'
 import { useToast } from '@/components/ui/toast'
 import { ComponentLoadingIndicator } from '@/components/ui/LoadingIndicator'
 import { Building2, Users, Calendar, Shield, AlertCircle } from 'lucide-react'
-import { getCompleteProfile, type CompleteProfile } from '@/lib/api/profile'
 import { translateAccountStatus } from '@/lib/translations'
 
 export default function CuentaPage() {
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, completeProfile, isLoadingProfile, isLoading } = useAuth()
   const { addToast } = useToast()
-  const [profile, setProfile] = useState<CompleteProfile | null>(null)
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (user) {
+    if (!isLoading && user) {
       // Check if user has permission to access this page
       if (!['SUPER_ADMIN', 'ADMIN', 'ACCOUNT_OWNER'].includes(user.role)) {
         addToast({
@@ -32,36 +29,22 @@ export default function CuentaPage() {
         router.push('/perfil')
         return
       }
-      fetchProfile()
     }
-  }, [user])
+  }, [user, isLoading, addToast, router])
 
-  const fetchProfile = async () => {
-    try {
-      setLoading(true)
-      const data = await getCompleteProfile()
-      if (!data.account) {
-        addToast({
-          title: 'Sin cuenta',
-          description: 'No tienes una cuenta asociada',
-          variant: 'destructive',
-        })
-        router.push('/perfil')
-        return
-      }
-      setProfile(data)
-    } catch (error) {
+  useEffect(() => {
+    // Redirect if profile loaded but no account
+    if (!isLoading && !isLoadingProfile && completeProfile && !completeProfile.account) {
       addToast({
-        title: 'Error',
-        description: 'No se pudo cargar la información de la cuenta',
+        title: 'Sin cuenta',
+        description: 'No tienes una cuenta asociada',
         variant: 'destructive',
       })
-    } finally {
-      setLoading(false)
+      router.push('/perfil')
     }
-  }
+  }, [completeProfile, isLoading, isLoadingProfile, addToast, router])
 
-  if (loading) {
+  if (isLoading || isLoadingProfile) {
     return (
       <ComponentLoadingIndicator
         message="Cargando información de la cuenta"
@@ -71,7 +54,7 @@ export default function CuentaPage() {
     )
   }
 
-  if (!profile || !profile.account) {
+  if (!completeProfile || !completeProfile.account) {
     return (
       <div className="container mx-auto px-4 py-8">
         <p className="text-center text-gray-500">No se pudo cargar la información de la cuenta</p>
@@ -121,7 +104,7 @@ export default function CuentaPage() {
                 id="accountName"
                 name="accountName"
                 type="text"
-                value={profile.account.name}
+                value={completeProfile.account.name}
                 disabled
                 className="mt-1"
               />
@@ -134,7 +117,7 @@ export default function CuentaPage() {
                   Estado
                 </label>
                 <div className="mt-2">
-                  {getStatusBadge(profile.account.status)}
+                  {getStatusBadge(completeProfile.account.status)}
                 </div>
               </div>
               <div>
@@ -146,7 +129,7 @@ export default function CuentaPage() {
                   id="accountType"
                   name="accountType"
                   type="text"
-                  value={profile.account.isSystemAccount ? 'Cuenta del Sistema' : 'Cuenta de Cliente'}
+                  value={completeProfile.account.isSystemAccount ? 'Cuenta del Sistema' : 'Cuenta de Cliente'}
                   disabled
                   className="mt-1"
                 />
@@ -162,7 +145,7 @@ export default function CuentaPage() {
                 id="createdAt"
                 name="createdAt"
                 type="text"
-                value={new Date(profile.account.createdAt).toLocaleDateString('es-ES', {
+                value={new Date(completeProfile.account.createdAt).toLocaleDateString('es-ES', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',
@@ -181,7 +164,7 @@ export default function CuentaPage() {
                 id="updatedAt"
                 name="updatedAt"
                 type="text"
-                value={new Date(profile.account.updatedAt).toLocaleDateString('es-ES', {
+                value={new Date(completeProfile.account.updatedAt).toLocaleDateString('es-ES', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',
@@ -213,13 +196,13 @@ export default function CuentaPage() {
                 id="accountId"
                 name="accountId"
                 type="text"
-                value={profile.account.id}
+                value={completeProfile.account.id}
                 disabled
                 className="mt-1 font-mono text-xs"
               />
             </div>
 
-            {profile.account.ownerId && (
+            {completeProfile.account.ownerId && (
               <div>
                 <label htmlFor="ownerId" className="text-sm font-medium text-gray-700">
                   ID del Propietario
@@ -228,7 +211,7 @@ export default function CuentaPage() {
                   id="ownerId"
                   name="ownerId"
                   type="text"
-                  value={profile.account.ownerId}
+                  value={completeProfile.account.ownerId}
                   disabled
                   className="mt-1 font-mono text-xs"
                 />

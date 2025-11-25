@@ -1,45 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/lib/useAuth'
-import { useToast } from '@/components/ui/toast'
 import { ComponentLoadingIndicator } from '@/components/ui/LoadingIndicator'
 import { UserCircle, Mail, User, Calendar, Shield } from 'lucide-react'
-import { getCompleteProfile, type CompleteProfile } from '@/lib/api/profile'
 import { translateRole, translateUserStatus, translateAccountStatus } from '@/lib/translations'
 
 export default function PerfilPage() {
-  const { user } = useAuth()
-  const { addToast } = useToast()
-  const [profile, setProfile] = useState<CompleteProfile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { completeProfile, isLoadingProfile, isLoading } = useAuth()
 
-  useEffect(() => {
-    if (user) {
-      fetchProfile()
-    }
-  }, [user])
-
-  const fetchProfile = async () => {
-    try {
-      setLoading(true)
-      const data = await getCompleteProfile()
-      setProfile(data)
-    } catch (error) {
-      addToast({
-        title: 'Error',
-        description: 'No se pudo cargar el perfil',
-        variant: 'destructive',
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (loading) {
+  if (isLoading || isLoadingProfile) {
     return (
       <ComponentLoadingIndicator
         message="Cargando perfil"
@@ -49,7 +21,7 @@ export default function PerfilPage() {
     )
   }
 
-  if (!profile) {
+  if (!completeProfile) {
     return (
       <div className="container mx-auto px-4 py-8">
         <p className="text-center text-gray-500">No se pudo cargar el perfil</p>
@@ -91,7 +63,7 @@ export default function PerfilPage() {
                   name="firstName"
                   type="text"
                   autoComplete="given-name"
-                  value={profile.user.firstName}
+                  value={completeProfile.user.firstName}
                   disabled
                   className="mt-1"
                 />
@@ -106,7 +78,7 @@ export default function PerfilPage() {
                   name="lastName"
                   type="text"
                   autoComplete="family-name"
-                  value={profile.user.lastName}
+                  value={completeProfile.user.lastName}
                   disabled
                   className="mt-1"
                 />
@@ -123,7 +95,7 @@ export default function PerfilPage() {
                 name="email"
                 type="email"
                 autoComplete="email"
-                value={profile.user.email}
+                value={completeProfile.user.email}
                 disabled
                 className="mt-1"
               />
@@ -139,7 +111,7 @@ export default function PerfilPage() {
                   id="role"
                   name="role"
                   type="text"
-                  value={translateRole(profile.user.role)}
+                  value={translateRole(completeProfile.user.role)}
                   disabled
                   className="mt-1"
                 />
@@ -153,7 +125,7 @@ export default function PerfilPage() {
                   id="status"
                   name="status"
                   type="text"
-                  value={translateUserStatus(profile.user.status)}
+                  value={translateUserStatus(completeProfile.user.status)}
                   disabled
                   className="mt-1"
                 />
@@ -169,7 +141,7 @@ export default function PerfilPage() {
                 id="createdAt"
                 name="createdAt"
                 type="text"
-                value={new Date(profile.user.createdAt).toLocaleDateString('es-ES', {
+                value={new Date(completeProfile.user.createdAt).toLocaleDateString('es-ES', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',
@@ -182,7 +154,7 @@ export default function PerfilPage() {
         </Card>
 
         {/* Account Information Card (if user has account) */}
-        {profile.account && (
+        {completeProfile.account && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -202,7 +174,7 @@ export default function PerfilPage() {
                   id="accountName"
                   name="accountName"
                   type="text"
-                  value={profile.account.name}
+                  value={completeProfile.account.name}
                   disabled
                   className="mt-1"
                 />
@@ -215,7 +187,7 @@ export default function PerfilPage() {
                   id="accountStatus"
                   name="accountStatus"
                   type="text"
-                  value={translateAccountStatus(profile.account.status)}
+                  value={translateAccountStatus(completeProfile.account.status)}
                   disabled
                   className="mt-1"
                 />
