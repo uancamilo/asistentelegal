@@ -1,4 +1,16 @@
 -- CreateEnum
+CREATE TYPE "Role" AS ENUM ('SUPER_ADMIN', 'ACCOUNT_OWNER', 'MEMBER', 'ADMIN', 'EDITOR');
+
+-- CreateEnum
+CREATE TYPE "UserStatus" AS ENUM ('INVITED', 'ACTIVE', 'SUSPENDED');
+
+-- CreateEnum
+CREATE TYPE "AccountStatus" AS ENUM ('PENDING', 'ACTIVE', 'INACTIVE', 'SUSPENDED');
+
+-- CreateEnum
+CREATE TYPE "InvitationStatus" AS ENUM ('PENDING', 'ACCEPTED', 'EXPIRED', 'CANCELLED');
+
+-- CreateEnum
 CREATE TYPE "DocumentType" AS ENUM ('CONSTITUCION', 'TRATADO_INTERNACIONAL', 'LEY_ORGANICA', 'LEY_ORDINARIA', 'DECRETO_LEY', 'DECRETO', 'REGLAMENTO', 'ORDENANZA', 'RESOLUCION', 'ACUERDO', 'CIRCULAR', 'DIRECTIVA', 'OTRO');
 
 -- CreateEnum
@@ -12,6 +24,90 @@ CREATE TYPE "ProcessingStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'F
 
 -- CreateEnum
 CREATE TYPE "DocumentScope" AS ENUM ('NACIONAL', 'REGIONAL', 'MUNICIPAL', 'LOCAL', 'INTERNACIONAL');
+
+-- CreateTable
+CREATE TABLE "Account" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "ownerId" TEXT,
+    "createdBy" TEXT NOT NULL,
+    "status" "AccountStatus" NOT NULL DEFAULT 'PENDING',
+    "isSystemAccount" BOOLEAN NOT NULL DEFAULT false,
+    "maxUsers" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Account_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "User" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "passwordHash" TEXT NOT NULL,
+    "firstName" TEXT NOT NULL,
+    "lastName" TEXT NOT NULL,
+    "role" "Role" NOT NULL,
+    "status" "UserStatus" NOT NULL DEFAULT 'ACTIVE',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "tokenVersion" INTEGER NOT NULL DEFAULT 0,
+    "accountId" TEXT,
+
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "account_invitations" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "accountId" TEXT NOT NULL,
+    "maxUsers" INTEGER NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "status" "InvitationStatus" NOT NULL DEFAULT 'PENDING',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "account_invitations_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "user_invitations" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "firstName" TEXT NOT NULL,
+    "lastName" TEXT NOT NULL,
+    "role" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "accountId" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "status" "InvitationStatus" NOT NULL DEFAULT 'PENDING',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "user_invitations_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "audit_logs" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "userEmail" TEXT NOT NULL,
+    "userRole" TEXT NOT NULL,
+    "action" TEXT NOT NULL,
+    "resource" TEXT NOT NULL,
+    "resourceId" TEXT NOT NULL,
+    "resourceName" TEXT,
+    "details" JSONB,
+    "ipAddress" TEXT,
+    "userAgent" TEXT,
+    "success" BOOLEAN NOT NULL DEFAULT true,
+    "errorMessage" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "audit_logs_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "documents" (
@@ -35,7 +131,7 @@ CREATE TABLE "documents" (
     "summary" TEXT,
     "fullText" TEXT,
     "observations" TEXT,
-    "embedding" DOUBLE PRECISION[],
+    "embedding" vector(1536),
     "keywords" TEXT[],
     "createdBy" TEXT NOT NULL,
     "updatedBy" TEXT,
@@ -74,7 +170,7 @@ CREATE TABLE "document_sections" (
     "parentId" TEXT,
     "order" INTEGER NOT NULL,
     "level" INTEGER NOT NULL DEFAULT 0,
-    "embedding" DOUBLE PRECISION[],
+    "embedding" vector(1536),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -131,6 +227,140 @@ CREATE TABLE "document_metadata" (
 
     CONSTRAINT "document_metadata_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateTable
+CREATE TABLE "search_queries" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "query" TEXT NOT NULL,
+    "totalResults" INTEGER NOT NULL DEFAULT 0,
+    "hasResults" BOOLEAN NOT NULL DEFAULT true,
+    "executionTimeMs" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "search_queries_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "document_views" (
+    "id" TEXT NOT NULL,
+    "documentId" TEXT NOT NULL,
+    "userId" TEXT,
+    "ipAddress" VARCHAR(45),
+    "userAgent" TEXT,
+    "referer" TEXT,
+    "viewedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "document_views_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Account_name_key" ON "Account"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Account_ownerId_key" ON "Account"("ownerId");
+
+-- CreateIndex
+CREATE INDEX "Account_name_idx" ON "Account"("name");
+
+-- CreateIndex
+CREATE INDEX "Account_isSystemAccount_idx" ON "Account"("isSystemAccount");
+
+-- CreateIndex
+CREATE INDEX "Account_createdAt_idx" ON "Account"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "Account_status_idx" ON "Account"("status");
+
+-- CreateIndex
+CREATE INDEX "Account_createdBy_idx" ON "Account"("createdBy");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE INDEX "User_accountId_idx" ON "User"("accountId");
+
+-- CreateIndex
+CREATE INDEX "User_role_idx" ON "User"("role");
+
+-- CreateIndex
+CREATE INDEX "User_email_idx" ON "User"("email");
+
+-- CreateIndex
+CREATE INDEX "User_status_idx" ON "User"("status");
+
+-- CreateIndex
+CREATE INDEX "User_accountId_role_idx" ON "User"("accountId", "role");
+
+-- CreateIndex
+CREATE INDEX "User_createdAt_idx" ON "User"("createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "account_invitations_token_key" ON "account_invitations"("token");
+
+-- CreateIndex
+CREATE INDEX "account_invitations_token_idx" ON "account_invitations"("token");
+
+-- CreateIndex
+CREATE INDEX "account_invitations_email_idx" ON "account_invitations"("email");
+
+-- CreateIndex
+CREATE INDEX "account_invitations_accountId_idx" ON "account_invitations"("accountId");
+
+-- CreateIndex
+CREATE INDEX "account_invitations_status_idx" ON "account_invitations"("status");
+
+-- CreateIndex
+CREATE INDEX "account_invitations_expiresAt_idx" ON "account_invitations"("expiresAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "user_invitations_token_key" ON "user_invitations"("token");
+
+-- CreateIndex
+CREATE INDEX "user_invitations_token_idx" ON "user_invitations"("token");
+
+-- CreateIndex
+CREATE INDEX "user_invitations_email_idx" ON "user_invitations"("email");
+
+-- CreateIndex
+CREATE INDEX "user_invitations_accountId_idx" ON "user_invitations"("accountId");
+
+-- CreateIndex
+CREATE INDEX "user_invitations_status_idx" ON "user_invitations"("status");
+
+-- CreateIndex
+CREATE INDEX "user_invitations_expiresAt_idx" ON "user_invitations"("expiresAt");
+
+-- CreateIndex
+CREATE INDEX "audit_logs_userId_idx" ON "audit_logs"("userId");
+
+-- CreateIndex
+CREATE INDEX "audit_logs_resource_resourceId_idx" ON "audit_logs"("resource", "resourceId");
+
+-- CreateIndex
+CREATE INDEX "audit_logs_action_idx" ON "audit_logs"("action");
+
+-- CreateIndex
+CREATE INDEX "audit_logs_createdAt_idx" ON "audit_logs"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "audit_logs_success_idx" ON "audit_logs"("success");
+
+-- CreateIndex
+CREATE INDEX "audit_logs_userId_createdAt_idx" ON "audit_logs"("userId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "audit_logs_resource_action_idx" ON "audit_logs"("resource", "action");
+
+-- CreateIndex
+CREATE INDEX "audit_logs_userId_action_idx" ON "audit_logs"("userId", "action");
+
+-- CreateIndex
+CREATE INDEX "audit_logs_resource_createdAt_idx" ON "audit_logs"("resource", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "audit_logs_success_createdAt_idx" ON "audit_logs"("success", "createdAt");
 
 -- CreateIndex
 CREATE INDEX "documents_type_idx" ON "documents"("type");
@@ -231,6 +461,45 @@ CREATE INDEX "document_metadata_key_idx" ON "document_metadata"("key");
 -- CreateIndex
 CREATE UNIQUE INDEX "document_metadata_documentId_key_key" ON "document_metadata"("documentId", "key");
 
+-- CreateIndex
+CREATE INDEX "search_queries_userId_idx" ON "search_queries"("userId");
+
+-- CreateIndex
+CREATE INDEX "search_queries_userId_createdAt_idx" ON "search_queries"("userId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "search_queries_createdAt_idx" ON "search_queries"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "search_queries_hasResults_idx" ON "search_queries"("hasResults");
+
+-- CreateIndex
+CREATE INDEX "document_views_documentId_idx" ON "document_views"("documentId");
+
+-- CreateIndex
+CREATE INDEX "document_views_documentId_viewedAt_idx" ON "document_views"("documentId", "viewedAt");
+
+-- CreateIndex
+CREATE INDEX "document_views_userId_idx" ON "document_views"("userId");
+
+-- CreateIndex
+CREATE INDEX "document_views_viewedAt_idx" ON "document_views"("viewedAt");
+
+-- AddForeignKey
+ALTER TABLE "Account" ADD CONSTRAINT "Account_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Account" ADD CONSTRAINT "Account_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "Account"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "account_invitations" ADD CONSTRAINT "account_invitations_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "Account"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "user_invitations" ADD CONSTRAINT "user_invitations_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "Account"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
 -- AddForeignKey
 ALTER TABLE "documents" ADD CONSTRAINT "documents_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -269,3 +538,13 @@ ALTER TABLE "document_relations" ADD CONSTRAINT "document_relations_createdBy_fk
 
 -- AddForeignKey
 ALTER TABLE "document_metadata" ADD CONSTRAINT "document_metadata_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "documents"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "search_queries" ADD CONSTRAINT "search_queries_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "document_views" ADD CONSTRAINT "document_views_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "documents"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "document_views" ADD CONSTRAINT "document_views_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
