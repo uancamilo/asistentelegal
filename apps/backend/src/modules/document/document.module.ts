@@ -6,10 +6,14 @@ import { PrismaModule } from '../../database/prisma.module';
 import { OpenAIModule } from '../../shared/openai/OpenAI.module';
 import { StorageModule } from '../../shared/storage/Storage.module';
 import { RateLimitingModule } from '../../shared/rate-limiting/rate-limiting.module';
+import { QueueModule } from '../../shared/queue/queue.module';
 
 // Repositories
 import { PrismaDocumentRepository } from './infrastructure/repositories/PrismaDocument.repository';
 import { PrismaDocumentFileRepository } from './infrastructure/repositories/PrismaDocumentFile.repository';
+
+// Processors (BullMQ workers)
+import { DocumentProcessor } from './infrastructure/processors/document.processor';
 
 // Domain tokens
 import {
@@ -23,6 +27,7 @@ import { GetDocumentUseCase } from './application/use-cases/GetDocument/GetDocum
 import { ListDocumentsUseCase } from './application/use-cases/ListDocuments/ListDocuments.usecase';
 import { UpdateDocumentUseCase } from './application/use-cases/UpdateDocument/UpdateDocument.usecase';
 import { PublishDocumentUseCase } from './application/use-cases/PublishDocument/PublishDocument.usecase';
+import { ImportDocumentFromUrlUseCase } from './application/use-cases/ImportDocumentFromUrl';
 
 // Controllers
 import { DocumentController } from './interfaces/controllers/Document.controller';
@@ -57,6 +62,7 @@ import { DocumentController } from './interfaces/controllers/Document.controller
     OpenAIModule,
     StorageModule,
     RateLimitingModule,
+    QueueModule,
   ],
   controllers: [DocumentController],
   providers: [
@@ -75,6 +81,9 @@ import { DocumentController } from './interfaces/controllers/Document.controller
     ListDocumentsUseCase,
     UpdateDocumentUseCase,
     PublishDocumentUseCase,
+    ImportDocumentFromUrlUseCase,
+    // Processors (BullMQ workers)
+    DocumentProcessor,
   ],
   exports: [
     DOCUMENT_REPOSITORY,

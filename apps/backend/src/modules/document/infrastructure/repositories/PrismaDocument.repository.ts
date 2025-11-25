@@ -25,6 +25,7 @@ export class PrismaDocumentRepository implements IDocumentRepository {
   async create(
     document: DocumentCreateData,
   ): Promise<DocumentEntity> {
+    // TODO: Wrap in prisma.$transaction() when creating Document + DocumentSections atomically
     const created = await this.prisma.document.create({
       data: {
         title: document.title,
@@ -38,10 +39,19 @@ export class PrismaDocumentRepository implements IDocumentRepository {
         summary: document.summary,
         fullText: document.fullText,
         keywords: document.keywords,
+        // FIX: Persist embedding field (critical bug fix)
+        ...(document.embedding && document.embedding.length > 0 && {
+          embedding: document.embedding,
+        }),
         createdBy: document.createdBy,
         updatedBy: document.updatedBy,
         publishedBy: document.publishedBy,
         publishedAt: document.publishedAt,
+        // NEW: Processing status fields (optional, with defaults)
+        processingStatus: document.processingStatus ?? 'MANUAL',
+        embeddingStatus: document.embeddingStatus ?? 'PENDING',
+        embeddingError: document.embeddingError ?? null,
+        sourceUrl: document.sourceUrl ?? null,
       } as any,
     });
 
@@ -387,6 +397,7 @@ export class PrismaDocumentRepository implements IDocumentRepository {
     if (data.type !== undefined) updateData.type = data.type;
     if (data.hierarchyLevel !== undefined) updateData.hierarchyLevel = data.hierarchyLevel;
     if (data.scope !== undefined) updateData.scope = data.scope;
+    if (data.issuingEntity !== undefined) updateData.issuingEntity = data.issuingEntity; // FIX: Was missing
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
     if (data.status !== undefined) updateData.status = data.status;
     if (data.summary !== undefined) updateData.summary = data.summary;
@@ -395,6 +406,26 @@ export class PrismaDocumentRepository implements IDocumentRepository {
     if (data.updatedBy !== undefined) updateData.updatedBy = data.updatedBy;
     if (data.publishedBy !== undefined) updateData.publishedBy = data.publishedBy;
     if (data.publishedAt !== undefined) updateData.publishedAt = data.publishedAt;
+    // NOTE: Embedding handled separately via raw SQL (pgvector type not supported by Prisma ORM)
+    // NEW: Processing status fields
+    if (data.processingStatus !== undefined) (updateData as any).processingStatus = data.processingStatus;
+    if (data.embeddingStatus !== undefined) (updateData as any).embeddingStatus = data.embeddingStatus;
+    if (data.embeddingError !== undefined) updateData.embeddingError = data.embeddingError;
+    if (data.sourceUrl !== undefined) updateData.sourceUrl = data.sourceUrl;
+    // NEW: Review fields
+    if (data.reviewedBy !== undefined) updateData.reviewedBy = data.reviewedBy;
+    if (data.reviewedAt !== undefined) updateData.reviewedAt = data.reviewedAt;
+    if (data.rejectionReason !== undefined) updateData.rejectionReason = data.rejectionReason;
+
+    // Handle embedding separately using raw SQL (pgvector type)
+    if (data.embedding !== undefined && data.embedding.length > 0) {
+      const embeddingString = `[${data.embedding.join(',')}]`;
+      await this.prisma.$executeRaw`
+        UPDATE "documents"
+        SET embedding = ${embeddingString}::vector
+        WHERE id = ${id}
+      `;
+    }
 
     const updated = await this.prisma.document.update({
       where: { id },
@@ -535,6 +566,14 @@ export class PrismaDocumentRepository implements IDocumentRepository {
       prismaDoc.publishedAt,
       prismaDoc.createdAt,
       prismaDoc.updatedAt,
+      // NEW: Processing status fields
+      prismaDoc.processingStatus || 'MANUAL',
+      prismaDoc.embeddingStatus || 'PENDING',
+      prismaDoc.embeddingError || null,
+      prismaDoc.sourceUrl || null,
+      prismaDoc.reviewedBy || null,
+      prismaDoc.reviewedAt || null,
+      prismaDoc.rejectionReason || null,
     );
   }
 }

@@ -27,6 +27,11 @@ import { GetDocumentUseCase } from '../../application/use-cases/GetDocument/GetD
 import { ListDocumentsUseCase } from '../../application/use-cases/ListDocuments/ListDocuments.usecase';
 import { UpdateDocumentUseCase } from '../../application/use-cases/UpdateDocument/UpdateDocument.usecase';
 import { PublishDocumentUseCase } from '../../application/use-cases/PublishDocument/PublishDocument.usecase';
+import {
+  ImportDocumentFromUrlUseCase,
+  ImportDocumentFromUrlDto,
+  ImportDocumentFromUrlResponseDto,
+} from '../../application/use-cases/ImportDocumentFromUrl';
 
 // DTOs
 import {
@@ -65,6 +70,7 @@ export class DocumentController {
     private readonly listDocumentsUseCase: ListDocumentsUseCase,
     private readonly updateDocumentUseCase: UpdateDocumentUseCase,
     private readonly publishDocumentUseCase: PublishDocumentUseCase,
+    private readonly importDocumentFromUrlUseCase: ImportDocumentFromUrlUseCase,
   ) {}
 
   /**
@@ -83,6 +89,28 @@ export class DocumentController {
   ): Promise<DocumentResponseDto> {
     const document = await this.createDocumentUseCase.execute(dto, user.id);
     return this.mapToResponseDto(document, user.role, true);
+  }
+
+  /**
+   * POST /api/documents/import-url
+   * Import document from URL (PDF)
+   *
+   * Creates a document record and enqueues background processing:
+   * 1. Download PDF from URL
+   * 2. Extract text
+   * 3. Generate embeddings
+   *
+   * Authorization: EDITOR, ADMIN, SUPER_ADMIN
+   */
+  @Post('import-url')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.EDITOR, Role.ADMIN, Role.SUPER_ADMIN)
+  @HttpCode(HttpStatus.ACCEPTED)
+  async importFromUrl(
+    @Body() dto: ImportDocumentFromUrlDto,
+    @CurrentUser() user: UserEntity,
+  ): Promise<ImportDocumentFromUrlResponseDto> {
+    return this.importDocumentFromUrlUseCase.execute(dto, user.id);
   }
 
   /**

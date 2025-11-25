@@ -63,6 +63,7 @@ model User {
   createdDocuments         Document[]         @relation("DocumentCreator")
   updatedDocuments         Document[]         @relation("DocumentUpdater")
   publishedDocuments       Document[]         @relation("DocumentPublisher")
+  reviewedDocuments        Document[]         @relation("DocumentReviewer")
   createdDocumentVersions  DocumentVersion[]  @relation("DocumentVersionCreator")
   uploadedDocumentFiles    DocumentFile[]     @relation("DocumentFileUploader")
   createdDocumentRelations DocumentRelation[] @relation("DocumentRelationCreator")
@@ -277,6 +278,21 @@ model Document {
   embedding Unsupported("vector(1536)")? // Vector de embeddings para búsqueda semántica (pgvector)
   keywords  String[] // Palabras clave extraídas
 
+  // --- NEW FIELDS FOR URL INGESTION & PROCESSING ---
+  // Source tracking (for URL/PDF ingestion)
+  sourceUrl String? // URL origen del documento (si fue importado)
+
+  // Processing status tracking
+  processingStatus ProcessingStatus @default(MANUAL) // Estado del procesamiento de contenido
+  embeddingStatus  ProcessingStatus @default(PENDING) // Estado de generación de embeddings
+  embeddingError   String?          @db.Text // Mensaje de error si embedding falló
+
+  // Human review tracking
+  reviewedBy      String? // Usuario que revisó el documento
+  reviewedAt      DateTime? // Fecha de revisión
+  rejectionReason String?  @db.Text // Motivo de rechazo (si aplica)
+  // --- END NEW FIELDS ---
+
   // Auditoría y control
   createdBy   String // Usuario que creó el documento (EDITOR)
   updatedBy   String? // Último usuario que modificó
@@ -289,6 +305,7 @@ model Document {
   creator   User  @relation("DocumentCreator", fields: [createdBy], references: [id])
   updater   User? @relation("DocumentUpdater", fields: [updatedBy], references: [id])
   publisher User? @relation("DocumentPublisher", fields: [publishedBy], references: [id])
+  reviewer  User? @relation("DocumentReviewer", fields: [reviewedBy], references: [id])
 
   versions      DocumentVersion[] // Historial de versiones
   sections      DocumentSection[] // Secciones/artículos del documento

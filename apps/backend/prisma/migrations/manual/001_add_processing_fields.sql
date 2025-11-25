@@ -51,7 +51,7 @@ BEGIN
     ) THEN
         ALTER TABLE "documents"
         ADD CONSTRAINT "documents_reviewedBy_fkey"
-        FOREIGN KEY ("reviewedBy") REFERENCES "users"("id")
+        FOREIGN KEY ("reviewedBy") REFERENCES "User"("id")
         ON DELETE SET NULL ON UPDATE CASCADE;
     END IF;
 END $$;

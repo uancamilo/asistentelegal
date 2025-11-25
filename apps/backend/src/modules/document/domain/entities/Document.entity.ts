@@ -25,6 +25,14 @@ export interface DocumentCreateData {
   updatedBy: string | null;
   publishedBy: string | null;
   publishedAt: Date | null;
+  // NEW: Processing & review fields
+  processingStatus?: string;   // 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'MANUAL'
+  embeddingStatus?: string;    // Same values
+  embeddingError?: string | null;
+  sourceUrl?: string | null;
+  reviewedBy?: string | null;
+  reviewedAt?: Date | null;
+  rejectionReason?: string | null;
 }
 
 /**
@@ -57,6 +65,14 @@ export class DocumentEntity {
     public publishedAt: Date | null,
     public createdAt: Date,
     public updatedAt: Date,
+    // NEW: Processing & review fields (with defaults for backward compatibility)
+    public processingStatus: string = 'MANUAL',
+    public embeddingStatus: string = 'PENDING',
+    public embeddingError: string | null = null,
+    public sourceUrl: string | null = null,
+    public reviewedBy: string | null = null,
+    public reviewedAt: Date | null = null,
+    public rejectionReason: string | null = null,
   ) {
     this.validate();
   }
@@ -74,6 +90,9 @@ export class DocumentEntity {
     fullText?: string;
     keywords?: string[];
     createdBy: string;
+    // NEW: Optional params for URL ingestion
+    sourceUrl?: string;
+    processingStatus?: string;
   }): DocumentCreateData {
     const hierarchyLevel = getHierarchyLevel(params.type);
 
@@ -94,6 +113,14 @@ export class DocumentEntity {
       updatedBy: null,
       publishedBy: null,
       publishedAt: null,
+      // NEW: Processing fields with defaults
+      processingStatus: params.processingStatus || 'MANUAL',
+      embeddingStatus: 'PENDING',
+      embeddingError: null,
+      sourceUrl: params.sourceUrl || null,
+      reviewedBy: null,
+      reviewedAt: null,
+      rejectionReason: null,
     };
   }
 
