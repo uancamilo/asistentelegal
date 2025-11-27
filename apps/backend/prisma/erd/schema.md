@@ -84,6 +84,7 @@ DESARROLLA DESARROLLA
 PROCESSING PROCESSING
 COMPLETED COMPLETED
 FAILED FAILED
+SKIPPED SKIPPED
 MANUAL MANUAL
         }
     
@@ -212,6 +213,15 @@ INTERNACIONAL INTERNACIONAL
     }
   
 
+  "document_chunks" {
+    String id "🗝️"
+    Int chunkIndex 
+    String content 
+    DateTime createdAt 
+    DateTime updatedAt 
+    }
+  
+
   "document_sections" {
     String id "🗝️"
     String sectionType 
@@ -317,6 +327,7 @@ INTERNACIONAL INTERNACIONAL
     "documents" o|--|o "User" : "reviewer"
     "documents" o{--}o "document_versions" : "versions"
     "documents" o{--}o "document_sections" : "sections"
+    "documents" o{--}o "document_chunks" : "chunks"
     "documents" o{--}o "document_files" : "files"
     "documents" o{--}o "document_metadata" : "metadata"
     "documents" o{--}o "document_relations" : "relationsFrom"
@@ -324,6 +335,7 @@ INTERNACIONAL INTERNACIONAL
     "documents" o{--}o "document_views" : "views"
     "document_versions" o|--|| "documents" : "document"
     "document_versions" o|--|| "User" : "creator"
+    "document_chunks" o|--|| "documents" : "document"
     "document_sections" o|--|| "documents" : "document"
     "document_sections" o|--|o "document_sections" : "parent"
     "document_sections" o{--}o "document_sections" : "children"

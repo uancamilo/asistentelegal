@@ -81,6 +81,7 @@ export enum ProcessingStatus {
   PROCESSING = 'PROCESSING',   // Currently being processed
   COMPLETED = 'COMPLETED',     // Successfully processed
   FAILED = 'FAILED',           // Processing failed
+  SKIPPED = 'SKIPPED',         // Skipped (e.g., embedding skipped due to prior error)
   MANUAL = 'MANUAL',           // Manual entry (no processing needed)
 }
 

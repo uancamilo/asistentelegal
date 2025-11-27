@@ -3,7 +3,6 @@ import { DOCUMENT_REPOSITORY } from '../../../domain/constants/tokens';
 import { IDocumentRepository } from '../../../domain/repositories/Document.repository.interface';
 import { DocumentEntity } from '../../../domain/entities/Document.entity';
 import { CreateDocumentDto } from '../../dtos/Document.dto';
-import { OpenAIService } from '../../../../../shared/openai/OpenAI.service';
 
 /**
  * Use Case: Create Document
@@ -11,9 +10,12 @@ import { OpenAIService } from '../../../../../shared/openai/OpenAI.service';
  * Business logic:
  * 1. Validate that document number is unique (if provided)
  * 2. Create document entity with initial state (DRAFT)
- * 3. Generate embedding for semantic search (if fullText provided)
- * 4. Persist document to database
- * 5. Return created document
+ * 3. Persist document to database
+ * 4. Return created document
+ *
+ * Note: Embedding generation is now handled asynchronously via the document processor
+ * when importing from URL. For manually created documents, embeddings are generated
+ * when the document is submitted for review or published.
  *
  * Authorization: EDITOR, ADMIN, SUPER_ADMIN
  */
@@ -22,7 +24,6 @@ export class CreateDocumentUseCase {
   constructor(
     @Inject(DOCUMENT_REPOSITORY)
     private readonly documentRepository: IDocumentRepository,
-    private readonly openAIService: OpenAIService,
   ) {}
 
   async execute(dto: CreateDocumentDto, userId: string): Promise<DocumentEntity> {
@@ -49,22 +50,8 @@ export class CreateDocumentUseCase {
       createdBy: userId,
     });
 
-    // 3. Generate embedding if fullText is provided
-    let embedding: number[] = [];
-    if (dto.fullText && dto.fullText.trim().length > 0) {
-      try {
-        const textForEmbedding = `${dto.title}\n\n${dto.summary || ''}\n\n${dto.fullText.substring(0, 2000)}`;
-        embedding = await this.openAIService.generateEmbedding(textForEmbedding);
-      } catch (error) {
-        // Embedding generation failed, continue without it
-      }
-    }
-
-    // 4. Persist document
-    const document = await this.documentRepository.create({
-      ...documentData,
-      embedding,
-    });
+    // 3. Persist document
+    const document = await this.documentRepository.create(documentData);
 
     return document;
   }

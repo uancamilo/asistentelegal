@@ -25,7 +25,6 @@ export class PrismaDocumentRepository implements IDocumentRepository {
   async create(
     document: DocumentCreateData,
   ): Promise<DocumentEntity> {
-    // TODO: Wrap in prisma.$transaction() when creating Document + DocumentSections atomically
     const created = await this.prisma.document.create({
       data: {
         title: document.title,
@@ -39,15 +38,11 @@ export class PrismaDocumentRepository implements IDocumentRepository {
         summary: document.summary,
         fullText: document.fullText,
         keywords: document.keywords,
-        // FIX: Persist embedding field (critical bug fix)
-        ...(document.embedding && document.embedding.length > 0 && {
-          embedding: document.embedding,
-        }),
         createdBy: document.createdBy,
         updatedBy: document.updatedBy,
         publishedBy: document.publishedBy,
         publishedAt: document.publishedAt,
-        // NEW: Processing status fields (optional, with defaults)
+        // Processing status fields (optional, with defaults)
         processingStatus: document.processingStatus ?? 'MANUAL',
         embeddingStatus: document.embeddingStatus ?? 'PENDING',
         embeddingError: document.embeddingError ?? null,
@@ -186,120 +181,105 @@ export class PrismaDocumentRepository implements IDocumentRepository {
   }
 
   async searchByVector(options: VectorSearchOptions): Promise<DocumentEntity[]> {
-    const { embedding, limit = 10, filters } = options;
+    // TODO: This method needs to be refactored to use DocumentChunk for semantic search
+    // For now, it returns an empty array as document-level embeddings have been removed
+    // Use IDocumentChunkRepository.searchByVector() for chunk-based semantic search
+    const { limit = 10, filters } = options;
 
-    // SECURITY: Validate embedding array to prevent SQL injection
-    // Ensure all values are valid numbers (not strings, objects, or SQL)
-    if (!Array.isArray(embedding) || embedding.length === 0) {
-      throw new Error('Invalid embedding: must be a non-empty array');
-    }
-
-    for (const value of embedding) {
-      if (typeof value !== 'number' || !Number.isFinite(value)) {
-        throw new Error(`Invalid embedding value: ${value}. All values must be finite numbers.`);
-      }
-    }
-
-    // Validate limit to prevent resource exhaustion
-    const safeLimit = Math.min(Math.max(1, Math.floor(limit)), 100);
-
-    // Build where clause for filters
+    // Fallback to keyword search or return empty until chunk search is implemented
     const where: Prisma.DocumentWhereInput = {};
     if (filters?.type) where.type = filters.type;
     if (filters?.status) where.status = filters.status;
     if (filters?.scope) where.scope = filters.scope as any;
 
-    // Use pgvector for similarity search with safe embedding string
-    // SECURITY: embedding array is validated above, so join is safe
-    const embeddingString = `[${embedding.join(',')}]`;
+    const safeLimit = Math.min(Math.max(1, Math.floor(limit)), 100);
 
-    const documents = await this.prisma.$queryRaw<any[]>`
-      SELECT * FROM "Document"
-      WHERE ${Object.keys(where).length > 0 ? Prisma.sql`
-        ${filters?.type ? Prisma.sql`type = ${filters.type}` : Prisma.empty}
-        ${filters?.status ? Prisma.sql`AND status = ${filters.status}` : Prisma.empty}
-        ${filters?.scope ? Prisma.sql`AND scope = ${filters.scope}` : Prisma.empty}
-      ` : Prisma.sql`1=1`}
-      ORDER BY embedding <=> ${Prisma.raw(embeddingString)}::vector
-      LIMIT ${safeLimit}
-    `;
+    const documents = await this.prisma.document.findMany({
+      where,
+      take: safeLimit,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        documentNumber: true,
+        type: true,
+        hierarchyLevel: true,
+        scope: true,
+        issuingEntity: true,
+        isActive: true,
+        status: true,
+        summary: true,
+        fullText: true,
+        keywords: true,
+        createdBy: true,
+        updatedBy: true,
+        publishedBy: true,
+        publishedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
 
-    return documents.map((doc) => this.toDomain(doc));
+    return documents.map((doc) => this.toDomain(doc as any));
   }
 
   /**
    * Search documents by similarity with enhanced options
    * Returns documents with similarity scores
+   *
+   * TODO: This method needs to be refactored to use DocumentChunk for semantic search
+   * Use IDocumentChunkRepository.searchByVector() for chunk-based semantic search
    */
   async searchBySimilarity(
-    embedding: number[],
+    _embedding: number[],
     options: SimilaritySearchOptions,
   ): Promise<Array<DocumentEntity & { similarity: number }>> {
+    // Fallback: return most recent documents with 0 similarity until chunk search is implemented
     const {
       limit = 10,
-      similarityThreshold = 0.7,
       type,
       scope,
       onlyActive = true,
       onlyPublished = true,
     } = options;
 
-    // SECURITY: Validate embedding array (same as searchByVector)
-    if (!Array.isArray(embedding) || embedding.length === 0) {
-      throw new Error('Invalid embedding: must be a non-empty array');
-    }
-
-    for (const value of embedding) {
-      if (typeof value !== 'number' || !Number.isFinite(value)) {
-        throw new Error(`Invalid embedding value: ${value}. All values must be finite numbers.`);
-      }
-    }
+    const where: Prisma.DocumentWhereInput = {};
+    if (type) where.type = type;
+    if (scope) where.scope = scope as any;
+    if (onlyActive) where.isActive = true;
+    if (onlyPublished) where.status = DocumentStatus.PUBLISHED;
 
     const safeLimit = Math.min(Math.max(1, Math.floor(limit)), 100);
-    const embeddingString = `[${embedding.join(',')}]`;
 
-    // Build WHERE conditions dynamically
-    const conditions: string[] = [];
-    const params: (DocumentType | DocumentScope | DocumentStatus)[] = []; // TYPE SAFETY FIX (P3.8)
-
-    if (type) {
-      conditions.push(`type = $${params.length + 1}::"DocumentType"`);
-      params.push(type);
-    }
-
-    if (scope) {
-      conditions.push(`scope = $${params.length + 1}::"DocumentScope"`);
-      params.push(scope);
-    }
-
-    if (onlyActive) {
-      conditions.push(`"isActive" = true`);
-    }
-
-    if (onlyPublished) {
-      conditions.push(`status = $${params.length + 1}::"DocumentStatus"`);
-      params.push(DocumentStatus.PUBLISHED);
-    }
-
-    // Add similarity threshold
-    conditions.push(`(1 - (embedding <=> '${embeddingString}'::vector)) >= ${similarityThreshold}`);
-
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-
-    const query = `
-      SELECT *,
-             (1 - (embedding <=> '${embeddingString}'::vector)) as similarity
-      FROM "documents"
-      ${whereClause}
-      ORDER BY embedding <=> '${embeddingString}'::vector
-      LIMIT ${safeLimit}
-    `;
-
-    const documents = await this.prisma.$queryRawUnsafe<any[]>(query, ...params);
+    const documents = await this.prisma.document.findMany({
+      where,
+      take: safeLimit,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        documentNumber: true,
+        type: true,
+        hierarchyLevel: true,
+        scope: true,
+        issuingEntity: true,
+        isActive: true,
+        status: true,
+        summary: true,
+        fullText: true,
+        keywords: true,
+        createdBy: true,
+        updatedBy: true,
+        publishedBy: true,
+        publishedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
 
     return documents.map((doc) =>
-      Object.assign(this.toDomain(doc), {
-        similarity: parseFloat(doc.similarity || '0')
+      Object.assign(this.toDomain(doc as any), {
+        similarity: 0 // Placeholder until chunk-based search is implemented
       })
     );
   }
@@ -406,26 +386,15 @@ export class PrismaDocumentRepository implements IDocumentRepository {
     if (data.updatedBy !== undefined) updateData.updatedBy = data.updatedBy;
     if (data.publishedBy !== undefined) updateData.publishedBy = data.publishedBy;
     if (data.publishedAt !== undefined) updateData.publishedAt = data.publishedAt;
-    // NOTE: Embedding handled separately via raw SQL (pgvector type not supported by Prisma ORM)
-    // NEW: Processing status fields
+    // Processing status fields
     if (data.processingStatus !== undefined) (updateData as any).processingStatus = data.processingStatus;
     if (data.embeddingStatus !== undefined) (updateData as any).embeddingStatus = data.embeddingStatus;
     if (data.embeddingError !== undefined) updateData.embeddingError = data.embeddingError;
     if (data.sourceUrl !== undefined) updateData.sourceUrl = data.sourceUrl;
-    // NEW: Review fields
+    // Review fields
     if (data.reviewedBy !== undefined) updateData.reviewedBy = data.reviewedBy;
     if (data.reviewedAt !== undefined) updateData.reviewedAt = data.reviewedAt;
     if (data.rejectionReason !== undefined) updateData.rejectionReason = data.rejectionReason;
-
-    // Handle embedding separately using raw SQL (pgvector type)
-    if (data.embedding !== undefined && data.embedding.length > 0) {
-      const embeddingString = `[${data.embedding.join(',')}]`;
-      await this.prisma.$executeRaw`
-        UPDATE "documents"
-        SET embedding = ${embeddingString}::vector
-        WHERE id = ${id}
-      `;
-    }
 
     const updated = await this.prisma.document.update({
       where: { id },
@@ -543,7 +512,6 @@ export class PrismaDocumentRepository implements IDocumentRepository {
 
   /**
    * Map Prisma model to Domain Entity
-   * TYPE SAFETY FIX (P3.8): Use 'any' to handle Unsupported embedding type
    */
   private toDomain(prismaDoc: any): DocumentEntity {
     return new DocumentEntity(
@@ -558,7 +526,6 @@ export class PrismaDocumentRepository implements IDocumentRepository {
       prismaDoc.status as DocumentStatus,
       prismaDoc.summary,
       prismaDoc.fullText,
-      prismaDoc.embedding || null,
       prismaDoc.keywords,
       prismaDoc.createdBy,
       prismaDoc.updatedBy,
@@ -566,7 +533,7 @@ export class PrismaDocumentRepository implements IDocumentRepository {
       prismaDoc.publishedAt,
       prismaDoc.createdAt,
       prismaDoc.updatedAt,
-      // NEW: Processing status fields
+      // Processing status fields
       prismaDoc.processingStatus || 'MANUAL',
       prismaDoc.embeddingStatus || 'PENDING',
       prismaDoc.embeddingError || null,

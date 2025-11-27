@@ -189,11 +189,270 @@ redis-cli LLEN bull:document-processing:wait
 redis-cli KEYS "bull:document-processing:*"
 ```
 
-## Next Steps (Step 2)
+## Error Handling & Status Management (Step 3)
 
-1. Implement actual PDF download logic in `handlePdfExtraction()`
-2. Implement text extraction using `pdf-parse`
-3. Implement embedding generation using OpenAI API
-4. Create `ImportDocumentFromUrlUseCase` to enqueue jobs
-5. Add endpoint `POST /documents/import-url`
-6. Update document status (`processingStatus`, `embeddingStatus`)
+### Processing Status Values
+
+| Status | Description |
+|--------|-------------|
+| `PENDING` | Waiting in queue |
+| `PROCESSING` | Currently being processed |
+| `COMPLETED` | Successfully processed |
+| `FAILED` | Processing failed (see `embeddingError`) |
+| `SKIPPED` | Skipped due to prior error |
+| `MANUAL` | Manual entry (no async processing) |
+
+### Error Scenarios & Status Updates
+
+#### 1. PDF Download Failure
+```
+┌─────────────────────────────────────────────────┐
+│ Cause: Network error, invalid URL, 404, timeout │
+│                                                 │
+│ processingStatus = FAILED                       │
+│ embeddingStatus  = SKIPPED                      │
+│ embeddingError   = "Download failed: <reason>"  │
+│ fullText         = null                         │
+│ status           = DRAFT (unchanged)            │
+└─────────────────────────────────────────────────┘
+```
+
+#### 2. PDF Parse Failure
+```
+┌─────────────────────────────────────────────────┐
+│ Cause: Invalid PDF, corrupt file, no text       │
+│                                                 │
+│ processingStatus = FAILED                       │
+│ embeddingStatus  = SKIPPED                      │
+│ embeddingError   = "Text extraction failed:..." │
+│ fullText         = null                         │
+│ status           = DRAFT (unchanged)            │
+└─────────────────────────────────────────────────┘
+```
+
+#### 3. OpenAI Embedding Failure
+```
+┌─────────────────────────────────────────────────┐
+│ Cause: API error, rate limit, invalid response  │
+│                                                 │
+│ processingStatus = COMPLETED (text was saved)   │
+│ embeddingStatus  = FAILED                       │
+│ embeddingError   = "OpenAI API error: <reason>" │
+│ fullText         = <extracted text preserved>   │
+│ status           = DRAFT (unchanged)            │
+└─────────────────────────────────────────────────┘
+```
+
+#### 4. Success Scenario
+```
+┌─────────────────────────────────────────────────┐
+│ processingStatus = COMPLETED                    │
+│ embeddingStatus  = COMPLETED                    │
+│ embeddingError   = null                         │
+│ fullText         = <extracted text>             │
+│ chunks           = N chunks with embeddings     │
+│ status           = DRAFT (awaiting review)      │
+└─────────────────────────────────────────────────┘
+```
+
+## Chunking & Embeddings (Step 6)
+
+### Overview
+
+Documents are processed using a chunking strategy for granular embeddings:
+
+```
+┌───────────────┐     ┌───────────────┐     ┌───────────────┐
+│   Full Text   │────▶│   Chunking    │────▶│  Embeddings   │
+│  (extracted)  │     │ (1000-1500ch) │     │ (per chunk)   │
+└───────────────┘     └───────────────┘     └───────────────┘
+                             │
+                             ▼
+                      ┌─────────────────┐
+                      │ DocumentChunk[] │
+                      │  - chunkIndex   │
+                      │  - content      │
+                      │  - embedding    │
+                      └─────────────────┘
+```
+
+### Chunking Strategy
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| targetSize | 1200 | Target characters per chunk |
+| minSize | 500 | Minimum chunk size |
+| maxSize | 1500 | Maximum chunk size |
+| overlap | 100 | Character overlap between chunks |
+
+**Break Point Priority:**
+1. Paragraph break (`\n\n`)
+2. Line break (`\n`)
+3. Sentence end (`.`, `!`, `?`)
+4. Semicolon/colon (`;`, `:`)
+5. Comma (`,`)
+6. Any whitespace
+
+### Embedding Model
+
+- **Model**: `text-embedding-3-small` (official system model)
+- **Dimensions**: 1536
+- **Batch Size**: 100 texts per API call
+- **Cost**: More cost-effective than text-embedding-3-large
+
+### Database Schema
+
+```sql
+CREATE TABLE document_chunks (
+  id TEXT PRIMARY KEY,
+  documentId TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  chunkIndex INTEGER NOT NULL,
+  content TEXT NOT NULL,
+  embedding vector(1536),  -- text-embedding-3-small
+  createdAt TIMESTAMP DEFAULT NOW(),
+  updatedAt TIMESTAMP DEFAULT NOW(),
+  UNIQUE(documentId, chunkIndex)
+);
+
+-- Vector index for semantic search
+CREATE INDEX document_chunks_embedding_idx
+ON document_chunks USING hnsw (embedding vector_cosine_ops);
+```
+
+### Processing Flow
+
+1. **PDF Extraction** → Extract full text from PDF
+2. **Chunking** → Split text into semantic chunks (chunkText utility)
+3. **Delete Old Chunks** → Remove any existing chunks for document
+4. **Generate Embeddings** → Batch call to OpenAI for all chunks
+5. **Save Chunks** → Store chunks with embeddings in database
+6. **Update Status** → Set embeddingStatus = COMPLETED
+
+### Context Injection
+
+Each chunk embedding includes document context:
+
+```
+Título: <document title>
+Resumen: <document summary>
+
+<chunk content>
+```
+
+This improves semantic search relevance by providing context.
+
+### Log Examples (Chunking)
+
+**Successful chunking:**
+```
+[Embedding] ========================================
+[Embedding] Starting job 26 for document cmif...
+[Embedding] Document found: "Ley de Ejemplo"
+[Embedding] Full text length: 45000 characters
+[Embedding] Chunking text...
+[Embedding] Created 38 chunks
+[Embedding] Deleted 0 existing chunks
+[Embedding] Generating embeddings for chunks via OpenAI...
+[Embedding] Processing embedding batch 1/1 (38 texts)
+[Embedding] Generated 38/38 embeddings (1536 dimensions each)
+[Embedding] Saving chunks with embeddings to database...
+[Embedding] Saved 38 chunks to database
+[Embedding] ========================================
+[Embedding] Completed successfully for document cmif...
+[Embedding] - Chunks created: 38
+[Embedding] - Embedding dimensions: 1536
+[Embedding] - Model: text-embedding-3-small
+[Embedding] - Status: embeddingStatus=COMPLETED
+```
+
+### API Response (DocumentResponseDto)
+
+```json
+{
+  "id": "cmif...",
+  "title": "Ley de Ejemplo",
+  "status": "DRAFT",
+  "processingStatus": "COMPLETED",
+  "embeddingStatus": "COMPLETED",
+  "chunksCount": 38
+}
+```
+
+### Human Review Workflow (Step 4 - Not Yet Implemented)
+
+Documents remain in `status = DRAFT` until human review:
+
+```
+┌───────────────┐    ┌───────────────┐    ┌───────────────┐
+│    DRAFT      │───▶│   IN_REVIEW   │───▶│   PUBLISHED   │
+│ (processing)  │    │ (human edits) │    │  (approved)   │
+└───────────────┘    └───────────────┘    └───────────────┘
+                            │
+                            ▼
+                     ┌───────────────┐
+                     │   REJECTED    │
+                     │ (with reason) │
+                     └───────────────┘
+```
+
+**Review Fields (prepared for Step 4):**
+- `reviewedBy`: User ID who reviewed
+- `reviewedAt`: Timestamp of review
+- `rejectionReason`: If rejected, why
+
+### Frontend Status Display
+
+The frontend can display processing status to users:
+
+| processingStatus | embeddingStatus | UI Message |
+|------------------|-----------------|------------|
+| PENDING | PENDING | "En cola..." |
+| PROCESSING | PENDING | "Extrayendo texto..." |
+| COMPLETED | PROCESSING | "Generando embeddings..." |
+| COMPLETED | COMPLETED | "Procesado correctamente" |
+| FAILED | SKIPPED | "Error en extracción" |
+| COMPLETED | FAILED | "Error en embeddings" |
+
+### Log Examples
+
+**Successful processing:**
+```
+[PDF Extraction] ========================================
+[PDF Extraction] Starting job 25 for document cmif...
+[PDF Extraction] Source URL: https://example.com/doc.pdf
+[PDF Extraction] Downloaded 50000 bytes successfully
+[PDF Extraction] Extracted 15000 characters from 10 pages
+[PDF Extraction] Text saved successfully (15000 chars)
+[PDF Extraction] Embedding job enqueued with ID: 26
+[PDF Extraction] ========================================
+[PDF Extraction] Completed successfully for document cmif...
+
+[Embedding] ========================================
+[Embedding] Starting job 26 for document cmif...
+[Embedding] Document found: "Ley de Ejemplo"
+[Embedding] Prepared text for embedding: 8000 characters
+[Embedding] Generated embedding with 1536 dimensions
+[Embedding] Embedding saved successfully
+[Embedding] ========================================
+[Embedding] Completed successfully for document cmif...
+```
+
+**Failed processing:**
+```
+[PDF Extraction] ========================================
+[PDF Extraction] Starting job 27 for document cmix...
+[PDF Extraction] Source URL: https://invalid-url.com/doc.pdf
+[PDF Extraction] ERROR: Download failed - Host not found
+[PDF Extraction] Document cmix... marked as FAILED (embedding SKIPPED)
+```
+
+## Next Steps (Step 4 - Human Review)
+
+1. Create `ReviewDocumentUseCase` for human review workflow
+2. Add endpoint `POST /documents/:id/review` with:
+   - `action: 'approve' | 'reject'`
+   - `rejectionReason?: string` (if rejected)
+   - `editedFullText?: string` (optional corrections)
+3. Update document status from DRAFT → IN_REVIEW → PUBLISHED
+4. Add frontend UI for document review queue
+5. Regenerate embeddings if text was manually edited

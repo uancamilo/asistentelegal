@@ -32,6 +32,21 @@ import {
   ImportDocumentFromUrlDto,
   ImportDocumentFromUrlResponseDto,
 } from '../../application/use-cases/ImportDocumentFromUrl';
+import {
+  IngestDocumentUseCase,
+  IngestDocumentDto,
+  IngestDocumentResponseDto,
+} from '../../application/use-cases/IngestDocument';
+import {
+  ReviewDocumentUseCase,
+  ReviewDocumentDto,
+  ReviewDocumentResponseDto,
+} from '../../application/use-cases/ReviewDocument';
+import {
+  SubmitDocumentForReviewUseCase,
+  SubmitForReviewResponseDto,
+} from '../../application/use-cases/SubmitDocumentForReview';
+import { SearchDocumentsUseCase } from '../../application/use-cases/SearchDocuments';
 
 // DTOs
 import {
@@ -42,6 +57,10 @@ import {
   DocumentListResponseDto,
   DocumentStatisticsDto,
 } from '../../application/dtos/Document.dto';
+import {
+  SearchDocumentsRequestDto,
+  SearchDocumentsResponseDto,
+} from '../../application/dtos/SearchDocument.dto';
 
 /**
  * Document Controller
@@ -71,6 +90,10 @@ export class DocumentController {
     private readonly updateDocumentUseCase: UpdateDocumentUseCase,
     private readonly publishDocumentUseCase: PublishDocumentUseCase,
     private readonly importDocumentFromUrlUseCase: ImportDocumentFromUrlUseCase,
+    private readonly ingestDocumentUseCase: IngestDocumentUseCase,
+    private readonly reviewDocumentUseCase: ReviewDocumentUseCase,
+    private readonly submitDocumentForReviewUseCase: SubmitDocumentForReviewUseCase,
+    private readonly searchDocumentsUseCase: SearchDocumentsUseCase,
   ) {}
 
   /**
@@ -111,6 +134,51 @@ export class DocumentController {
     @CurrentUser() user: UserEntity,
   ): Promise<ImportDocumentFromUrlResponseDto> {
     return this.importDocumentFromUrlUseCase.execute(dto, user.id);
+  }
+
+  /**
+   * POST /api/documents/ingest
+   * Automatic document ingestion with metadata detection
+   *
+   * This endpoint:
+   * 1. Downloads PDF from URL
+   * 2. Extracts text content
+   * 3. Uses LLM to detect document metadata automatically
+   * 4. Detects if PDF contains single or multiple legal documents
+   * 5. Returns structured data for form pre-filling
+   *
+   * NOTE: This does NOT create documents in the database.
+   * The response is used to pre-fill the creation form.
+   *
+   * Authorization: EDITOR, ADMIN, SUPER_ADMIN
+   */
+  @Post('ingest')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.EDITOR, Role.ADMIN, Role.SUPER_ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // Lower rate limit for expensive operation
+  async ingest(
+    @Body() dto: IngestDocumentDto,
+  ): Promise<IngestDocumentResponseDto> {
+    return this.ingestDocumentUseCase.execute(dto);
+  }
+
+  /**
+   * POST /api/documents/search
+   * Semantic search across published documents
+   *
+   * Performs vector similarity search on document chunks.
+   * Only searches within PUBLISHED documents.
+   *
+   * Authorization: Public (no authentication required)
+   */
+  @Post('search')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 20, ttl: 60000 } }) // Lower rate limit for search
+  async search(
+    @Body() dto: SearchDocumentsRequestDto,
+  ): Promise<SearchDocumentsResponseDto> {
+    return this.searchDocumentsUseCase.execute(dto);
   }
 
   /**
@@ -228,6 +296,45 @@ export class DocumentController {
   }
 
   /**
+   * PATCH /api/documents/:id/review
+   * Review document (approve or reject)
+   *
+   * Human review workflow for processed documents.
+   * Allows metadata modifications before approval.
+   *
+   * Authorization: EDITOR, ADMIN, SUPER_ADMIN
+   */
+  @Patch(':id/review')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.EDITOR, Role.ADMIN, Role.SUPER_ADMIN)
+  async review(
+    @Param('id') id: string,
+    @Body() dto: ReviewDocumentDto,
+    @CurrentUser() user: UserEntity,
+  ): Promise<ReviewDocumentResponseDto> {
+    return this.reviewDocumentUseCase.execute(id, dto, user.id);
+  }
+
+  /**
+   * PATCH /api/documents/:id/submit-review
+   * Submit document for review
+   *
+   * Transitions document from DRAFT to IN_REVIEW status.
+   * Only documents in DRAFT status can be submitted.
+   *
+   * Authorization: ACCOUNT_OWNER, MEMBER (document owners)
+   */
+  @Patch(':id/submit-review')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ACCOUNT_OWNER, Role.MEMBER)
+  async submitForReview(
+    @Param('id') id: string,
+    @CurrentUser() user: UserEntity,
+  ): Promise<SubmitForReviewResponseDto> {
+    return this.submitDocumentForReviewUseCase.execute(id, user.id);
+  }
+
+  /**
    * Map domain entity to response DTO
    * Apply access control for fullText field
    */
@@ -266,6 +373,15 @@ export class DocumentController {
       response.createdBy = document.createdBy;
       response.updatedBy = document.updatedBy;
       response.publishedBy = document.publishedBy;
+
+      // Include processing and review fields for editors
+      response.processingStatus = document.processingStatus;
+      response.embeddingStatus = document.embeddingStatus;
+      response.embeddingError = document.embeddingError;
+      response.sourceUrl = document.sourceUrl;
+      response.reviewedBy = document.reviewedBy;
+      response.reviewedAt = document.reviewedAt;
+      response.rejectionReason = document.rejectionReason;
     }
 
     return response;

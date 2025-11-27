@@ -225,6 +225,7 @@ enum ProcessingStatus {
   PROCESSING // En proceso de extracción/OCR
   COMPLETED // Procesamiento completado
   FAILED // Procesamiento fallido
+  SKIPPED // Omitido (ej: embedding no generado por error previo)
   MANUAL // Ingreso manual (sin procesamiento)
 }
 
@@ -275,8 +276,7 @@ model Document {
   observations String? @db.Text // Observaciones o notas del editor
 
   // Metadatos para LLM/RAG
-  embedding Unsupported("vector(1536)")? // Vector de embeddings para búsqueda semántica (pgvector)
-  keywords  String[] // Palabras clave extraídas
+  keywords String[] // Palabras clave extraídas
 
   // --- NEW FIELDS FOR URL INGESTION & PROCESSING ---
   // Source tracking (for URL/PDF ingestion)
@@ -309,6 +309,7 @@ model Document {
 
   versions      DocumentVersion[] // Historial de versiones
   sections      DocumentSection[] // Secciones/artículos del documento
+  chunks        DocumentChunk[] // Chunks para embeddings granulares
   files         DocumentFile[] // Archivos asociados (PDFs, etc.)
   metadata      DocumentMetadata[] // Metadata adicional flexible
   relationsFrom DocumentRelation[] @relation("DocumentFrom") // Relaciones que origina
@@ -361,6 +362,34 @@ model DocumentVersion {
   @@index([createdAt])
   @@index([versionNumber])
   @@map("document_versions")
+}
+
+// ============================================
+// CHUNKS DE DOCUMENTOS (para embeddings granulares)
+// ============================================
+
+model DocumentChunk {
+  id         String @id @default(cuid())
+  documentId String // Documento al que pertenece
+
+  // Información del chunk
+  chunkIndex Int // Índice del chunk dentro del documento (0, 1, 2...)
+  content    String @db.Text // Contenido del chunk
+
+  // Embedding para búsqueda semántica
+  embedding Unsupported("vector(1536)")? // Vector de embeddings (text-embedding-3-small)
+
+  // Auditoría
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex]) // No puede haber chunks duplicados
+  @@index([documentId])
+  @@index([chunkIndex])
+  @@map("document_chunks")
 }
 
 // ============================================

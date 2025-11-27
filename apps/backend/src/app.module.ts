@@ -8,6 +8,7 @@ import { AccountModule } from './modules/account/account.module';
 import { InvitationModule } from './modules/invitation/invitation.module';
 import { DocumentModule } from './modules/document/document.module';
 import { SearchModule } from './modules/search/search.module';
+import { AssistantModule } from './modules/assistant/assistant.module';
 import { AuditModule } from './shared/audit/audit.module';
 import { RateLimitingModule } from './shared/rate-limiting/rate-limiting.module';
 // import { GuardsModule } from './shared/guards/guards.module'; // TODO: Fix UserThrottlerGuard DI
@@ -53,6 +54,7 @@ import { ContentTypeValidationMiddleware } from './shared/middleware/content-typ
     InvitationModule,
     DocumentModule,
     SearchModule,
+    AssistantModule,
     AuditModule,
     // Módulo de rate limiting con Redis
     RateLimitingModule,
