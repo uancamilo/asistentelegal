@@ -165,22 +165,22 @@ export function AutoIngestSection({ onIngestComplete, isDisabled = false }: Auto
               </div>
 
               {/* Detected Documents Summary */}
-              <div className="grid gap-2">
+              <div className="grid gap-2 max-w-full overflow-hidden">
                 {result.detectedDocuments.map((doc, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-3 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
+                    className="flex items-center gap-3 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg w-full max-w-full overflow-hidden"
                   >
-                    <FileText className="h-4 w-4 text-gray-400" />
+                    <FileText className="h-4 w-4 text-gray-400 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                         {doc.title}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                         {doc.documentNumber || 'Sin numero'} | {doc.issuingEntity}
                       </p>
                     </div>
-                    <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
+                    <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded flex-shrink-0 whitespace-nowrap">
                       {Math.round(doc.confidence * 100)}% confianza
                     </span>
                   </div>

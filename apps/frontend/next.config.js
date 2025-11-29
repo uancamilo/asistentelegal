@@ -102,6 +102,13 @@ const nextConfig = {
       },
     ];
   },
+
+  // Experimental features for handling long-running requests
+  experimental: {
+    // Increase proxy timeout for long operations like document ingestion
+    // Default is ~30 seconds, we extend to 2 minutes for PDF processing + OpenAI analysis
+    proxyTimeout: 120000, // 120 seconds = 2 minutes
+  },
 };
 
 module.exports = nextConfig;
