@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../../../shared/guards/JwtAuth.guard';
+import { OptionalJwtAuthGuard } from '../../../../shared/guards/OptionalJwtAuth.guard';
 import { RolesGuard } from '../../../../shared/guards/Roles.guard';
 import { Roles } from '../../../../shared/decorators/Roles.decorator';
 import { CurrentUser } from '../../../../shared/decorators/CurrentUser.decorator';
@@ -188,6 +189,7 @@ export class DocumentController {
    * Authorization: Public (only published), Authenticated (based on role)
    */
   @Get()
+  @UseGuards(OptionalJwtAuthGuard)
   async list(
     @Query() filters: FilterDocumentsDto,
     @CurrentUser() user?: UserEntity,
@@ -215,6 +217,7 @@ export class DocumentController {
    * Authorization: Public (published only), Authenticated (based on role)
    */
   @Get(':id')
+  @UseGuards(OptionalJwtAuthGuard)
   async getById(
     @Param('id') id: string,
     @CurrentUser() user?: UserEntity,

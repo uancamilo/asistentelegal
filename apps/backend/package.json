@@ -50,6 +50,7 @@
 		"@types/multer": "^2.0.0",
 		"argon2": "^0.44.0",
 		"axios": "^1.13.2",
+		"body-parser": "^2.2.1",
 		"bull": "^4.16.5",
 		"bullmq": "^5.64.1",
 		"class-transformer": "^0.5.1",

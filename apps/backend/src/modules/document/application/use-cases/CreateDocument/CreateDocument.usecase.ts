@@ -1,4 +1,4 @@
-import { Injectable, Inject, ConflictException } from '@nestjs/common';
+import { Injectable, Inject, ConflictException, Logger } from '@nestjs/common';
 import { DOCUMENT_REPOSITORY } from '../../../domain/constants/tokens';
 import { IDocumentRepository } from '../../../domain/repositories/Document.repository.interface';
 import { DocumentEntity } from '../../../domain/entities/Document.entity';
@@ -21,12 +21,16 @@ import { CreateDocumentDto } from '../../dtos/Document.dto';
  */
 @Injectable()
 export class CreateDocumentUseCase {
+  private readonly logger = new Logger(CreateDocumentUseCase.name);
+
   constructor(
     @Inject(DOCUMENT_REPOSITORY)
     private readonly documentRepository: IDocumentRepository,
   ) {}
 
   async execute(dto: CreateDocumentDto, userId: string): Promise<DocumentEntity> {
+    this.logger.log(`[CreateDocument] Starting creation for: ${dto.title}`);
+
     // 1. Check if document number already exists
     if (dto.documentNumber) {
       const existing = await this.documentRepository.findByDocumentNumber(dto.documentNumber);
@@ -50,8 +54,12 @@ export class CreateDocumentUseCase {
       createdBy: userId,
     });
 
+    this.logger.log(`[CreateDocument] Persisting document to database...`);
+
     // 3. Persist document
     const document = await this.documentRepository.create(documentData);
+
+    this.logger.log(`[CreateDocument] Document created with ID: ${document.id}`);
 
     return document;
   }

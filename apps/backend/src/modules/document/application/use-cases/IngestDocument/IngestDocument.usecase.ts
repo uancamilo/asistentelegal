@@ -238,12 +238,19 @@ Si hay VARIOS documentos, devuelve un array con todos ellos en orden de aparici�
 
       // Map LLM response to our metadata format
       return documents.map((doc: any) => {
-        const startPos = doc.startPosition || 0;
-        const endPos = doc.endPosition || text.length;
-        const docContent = text.substring(
-          Math.max(0, startPos),
-          Math.min(text.length, endPos),
-        );
+        // Si es un solo documento, usar el texto completo
+        // ya que el LLM solo analiza los primeros 15k caracteres
+        let docContent: string;
+        if (documents.length === 1) {
+          docContent = text; // Texto completo para documento único
+        } else {
+          const startPos = doc.startPosition || 0;
+          const endPos = doc.endPosition || text.length;
+          docContent = text.substring(
+            Math.max(0, startPos),
+            Math.min(text.length, endPos),
+          );
+        }
 
         return {
           title: doc.title || 'Documento sin título',
