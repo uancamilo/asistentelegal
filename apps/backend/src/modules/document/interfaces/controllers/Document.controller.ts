@@ -4,14 +4,14 @@ import {
   Post,
   Put,
   Patch,
-
+  Delete,
   Body,
   Param,
   Query,
   UseGuards,
   HttpCode,
   HttpStatus,
-
+  Inject,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../../../shared/guards/JwtAuth.guard';
@@ -48,6 +48,8 @@ import {
   SubmitForReviewResponseDto,
 } from '../../application/use-cases/SubmitDocumentForReview';
 import { SearchDocumentsUseCase } from '../../application/use-cases/SearchDocuments';
+import { DOCUMENT_REPOSITORY } from '../../domain/constants/tokens';
+import { IDocumentRepository } from '../../domain/repositories/Document.repository.interface';
 
 // DTOs
 import {
@@ -95,6 +97,8 @@ export class DocumentController {
     private readonly reviewDocumentUseCase: ReviewDocumentUseCase,
     private readonly submitDocumentForReviewUseCase: SubmitDocumentForReviewUseCase,
     private readonly searchDocumentsUseCase: SearchDocumentsUseCase,
+    @Inject(DOCUMENT_REPOSITORY)
+    private readonly documentRepository: IDocumentRepository,
   ) {}
 
   /**
@@ -335,6 +339,24 @@ export class DocumentController {
     @CurrentUser() user: UserEntity,
   ): Promise<SubmitForReviewResponseDto> {
     return this.submitDocumentForReviewUseCase.execute(id, user.id);
+  }
+
+  /**
+   * DELETE /api/documents/:id
+   * Delete document (hard delete)
+   *
+   * Permanently removes the document and all associated data (chunks, files, etc.)
+   *
+   * Authorization: ADMIN, SUPER_ADMIN only
+   */
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async delete(
+    @Param('id') id: string,
+  ): Promise<void> {
+    await this.documentRepository.hardDelete(id);
   }
 
   /**

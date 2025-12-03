@@ -8,6 +8,7 @@
 export interface TextChunk {
   index: number;
   content: string;
+  articleRef?: string; // Reference to article (e.g., "articulo-49", "articulo-107-paragrafo-2")
 }
 
 export interface ChunkOptions {
@@ -52,12 +53,13 @@ export function chunkText(text: string, options?: ChunkOptions): TextChunk[] {
 
   // If text is smaller than minSize, return as single chunk
   if (normalizedText.length <= opts.minSize) {
-    return [{ index: 0, content: normalizedText }];
+    return [{ index: 0, content: normalizedText, articleRef: extractArticleRef(normalizedText) }];
   }
 
   const chunks: TextChunk[] = [];
   let currentPosition = 0;
   let chunkIndex = 0;
+  let lastArticleRef: string | undefined = undefined; // Track last known article reference
 
   while (currentPosition < normalizedText.length) {
     // Calculate end position for this chunk
@@ -85,9 +87,20 @@ export function chunkText(text: string, options?: ChunkOptions): TextChunk[] {
       (chunkContent.length >= opts.minSize ||
         endPosition >= normalizedText.length)
     ) {
+      // Extract article reference for this chunk
+      const currentArticleRef = extractArticleRef(chunkContent);
+
+      // If this chunk has an article declaration, update the tracking variable
+      // Otherwise, inherit from the previous chunk (for continuation chunks)
+      if (currentArticleRef) {
+        lastArticleRef = currentArticleRef;
+      }
+
       chunks.push({
         index: chunkIndex++,
         content: chunkContent,
+        // Use current chunk's articleRef if found, otherwise inherit from previous chunk
+        articleRef: currentArticleRef || lastArticleRef,
       });
     }
 
@@ -196,6 +209,64 @@ function findLastMatch(
   }
 
   return lastMatch;
+}
+
+/**
+ * Extracts the article reference from chunk content
+ * Looks for patterns like "ARTÍCULO 49.", "Art. 107", "PARÁGRAFO 2"
+ *
+ * IMPORTANT: This function prioritizes MAIN article declarations over references
+ * to other laws. For example, it will match "ARTÍCULO 67." but NOT "(Ver Ley X; Art. 84)"
+ *
+ * Priority order:
+ * 1. "ARTÍCULO X." at line start or after newline (main article declaration)
+ * 2. "ARTÍCULO X" in uppercase (likely main declaration)
+ * 3. Falls back to first article pattern if no main declaration found
+ *
+ * Returns the most specific reference found (article + paragraph if present)
+ */
+function extractArticleRef(content: string): string | undefined {
+  // First, remove all text inside parentheses to avoid matching references like "(Ver Ley X; Art. 84)"
+  // This prevents false positives from legal references to other laws
+  const contentWithoutParens = content.replace(/\([^)]*\)/g, ' ');
+
+  // Priority 1: Look for main article declarations - "ARTÍCULO X." at line start or after newline
+  // This pattern matches the formal article declaration in Colombian legal documents
+  const mainArticleMatch = contentWithoutParens.match(/(?:^|\n)\s*ART[ÍI]CULO\s+(\d+)\s*\.?/i);
+
+  let articleNum: string | undefined;
+
+  if (mainArticleMatch) {
+    articleNum = mainArticleMatch[1];
+  } else {
+    // Priority 2: Look for "ARTÍCULO X" in uppercase anywhere (but not inside parentheses)
+    const uppercaseArticleMatch = contentWithoutParens.match(/ART[ÍI]CULO\s+(\d+)/);
+    if (uppercaseArticleMatch) {
+      articleNum = uppercaseArticleMatch[1];
+    } else {
+      // Priority 3: Look for any article pattern as fallback (still excluding parentheses content)
+      const fallbackMatch = contentWithoutParens.match(/(?:ART[ÍI]CULO|Art\.?)\s*(\d+)/i);
+      if (fallbackMatch) {
+        articleNum = fallbackMatch[1];
+      }
+    }
+  }
+
+  if (!articleNum) {
+    return undefined;
+  }
+
+  let ref = `articulo-${articleNum}`;
+
+  // Look for paragraph patterns within the same content (also excluding parentheses)
+  const paragraphMatch = contentWithoutParens.match(/(?:PAR[ÁA]GRAFO|PARÁGRAFO TRANSITORIO)\s*(\d+)?/i);
+  if (paragraphMatch) {
+    const paraNum = paragraphMatch[1] || '1';
+    const isTransitorio = paragraphMatch[0].toLowerCase().includes('transitorio');
+    ref += isTransitorio ? `-transitorio-${paraNum}` : `-paragrafo-${paraNum}`;
+  }
+
+  return ref;
 }
 
 /**

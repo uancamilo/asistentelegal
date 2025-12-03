@@ -136,15 +136,27 @@ export class IngestDocumentUseCase {
     }
 
     // Step 5: Convert content to Markdown for each detected document
+    // For large documents (>50K chars), skip LLM conversion to avoid timeout
+    const LARGE_DOC_THRESHOLD = 50000;
+
     for (const doc of detectedDocuments) {
-      try {
-        this.logger.log(`[Ingest] Converting content to Markdown for: ${doc.title}`);
-        doc.contentMarkdown = await this.convertToMarkdown(doc.content, doc.title);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        this.logger.warn(`[Ingest] Markdown conversion failed, using plain text: ${errorMessage}`);
-        warnings.push(`Markdown conversion failed for "${doc.title}": ${errorMessage}`);
+      const contentLength = doc.content?.length || 0;
+
+      if (contentLength > LARGE_DOC_THRESHOLD) {
+        // Large document: use basic formatting only (no LLM call)
+        this.logger.log(`[Ingest] Large document (${contentLength} chars), using basic formatting for: ${doc.title}`);
         doc.contentMarkdown = this.createBasicMarkdown(doc.content, doc.title);
+      } else {
+        // Small document: use LLM for better formatting
+        try {
+          this.logger.log(`[Ingest] Converting content to Markdown for: ${doc.title}`);
+          doc.contentMarkdown = await this.convertToMarkdown(doc.content, doc.title);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          this.logger.warn(`[Ingest] Markdown conversion failed, using plain text: ${errorMessage}`);
+          warnings.push(`Markdown conversion failed for "${doc.title}": ${errorMessage}`);
+          doc.contentMarkdown = this.createBasicMarkdown(doc.content, doc.title);
+        }
       }
 
       // Create chunks from original content (not markdown) for embeddings
@@ -328,15 +340,21 @@ Tu tarea es convertir texto plano extraído de un PDF legal a formato Markdown e
 INSTRUCCIONES:
 1. Identifica y formatea correctamente:
    - Títulos y subtítulos (usar # ## ###)
-   - Artículos (### Art. X o ### ARTÍCULO X)
+   - Artículos con ID para navegación: <h3 id="articulo-X">ARTÍCULO X</h3>
+   - Parágrafos con ID: <h4 id="articulo-X-paragrafo-Y">PARÁGRAFO Y</h4>
    - Capítulos y secciones (## CAPÍTULO X)
    - Listas numeradas o con viñetas
    - Párrafos separados claramente
 
-2. Preserva TODO el contenido - no elimines ni resumas nada
-3. Mejora la legibilidad con saltos de línea apropiados
-4. Usa **negrita** para términos importantes definidos
-5. Usa > blockquotes para citas textuales dentro del documento
+2. IMPORTANTE para artículos y parágrafos:
+   - Usa HTML con id para cada artículo: <h3 id="articulo-49">ARTÍCULO 49</h3>
+   - El ID debe ser en minúsculas, sin tildes: articulo-49, articulo-107
+   - Para parágrafos: <h4 id="articulo-49-paragrafo-1">PARÁGRAFO 1</h4>
+
+3. Preserva TODO el contenido - no elimines ni resumas nada
+4. Mejora la legibilidad con saltos de línea apropiados
+5. Usa **negrita** para términos importantes definidos
+6. Usa > blockquotes para citas textuales dentro del documento
 
 FORMATO DE SALIDA:
 Devuelve ÚNICAMENTE el texto convertido a Markdown, sin explicaciones adicionales.
@@ -365,7 +383,10 @@ El documento debe comenzar con el título como encabezado nivel 1.`;
       // If text was truncated, append the remaining content with basic formatting
       if (needsTruncationNote && text.length > maxLlmChars) {
         const remainingText = text.substring(maxLlmChars);
-        markdown += '\n\n---\n\n' + this.applyBasicMarkdownFormatting(remainingText);
+        this.logger.log(`[Ingest] Formatting remaining ${remainingText.length} chars...`);
+        const formattedRemaining = this.applyBasicMarkdownFormatting(remainingText);
+        this.logger.log(`[Ingest] Formatting complete`);
+        markdown += '\n\n---\n\n' + formattedRemaining;
       }
 
       return markdown;
@@ -377,19 +398,30 @@ El documento debe comenzar con el título como encabezado nivel 1.`;
 
   /**
    * Create basic Markdown when LLM is unavailable
+   * For large texts, returns content as-is with just a title header
    */
   private createBasicMarkdown(text: string, title: string): string {
-    let markdown = `# ${title}\n\n`;
-    markdown += this.applyBasicMarkdownFormatting(text);
-    return markdown;
+    // For very large texts (>100K), skip all formatting - just add title
+    if (text.length > 100000) {
+      return `# ${title}\n\n${text}`;
+    }
+    return `# ${title}\n\n${this.applyBasicMarkdownFormatting(text)}`;
   }
 
   /**
    * Apply basic Markdown formatting rules to text
+   * Adds HTML IDs to articles for navigation
+   * Optimized for large texts using regex replacements
    */
   private applyBasicMarkdownFormatting(text: string): string {
+    // For very large texts, use simplified formatting to avoid timeout
+    if (text.length > 100000) {
+      return this.applySimplifiedFormatting(text);
+    }
+
     const lines = text.split('\n');
     const formattedLines: string[] = [];
+    let currentArticleNum: string | null = null;
 
     for (const line of lines) {
       const trimmed = line.trim();
@@ -398,9 +430,23 @@ El documento debe comenzar con el título como encabezado nivel 1.`;
         continue;
       }
 
-      // Detect article patterns
-      if (/^(ART[ÍI]CULO|Art\.?)\s*\d+/i.test(trimmed)) {
-        formattedLines.push(`\n### ${trimmed}`);
+      // Detect article patterns and add ID
+      const articleMatch = trimmed.match(/^(ART[ÍI]CULO|Art\.?)\s*(\d+)/i);
+      if (articleMatch && articleMatch[2]) {
+        const articleNum = articleMatch[2];
+        currentArticleNum = articleNum;
+        const articleId = `articulo-${articleNum}`;
+        formattedLines.push(`\n<h3 id="${articleId}">${trimmed}</h3>`);
+        continue;
+      }
+
+      // Detect paragraph patterns and add ID
+      const paragraphMatch = trimmed.match(/^(PAR[ÁA]GRAFO|PARÁGRAFO TRANSITORIO)\s*(\d+)?/i);
+      if (paragraphMatch && paragraphMatch[1] && currentArticleNum) {
+        const paraNum = paragraphMatch[2] || '1';
+        const paraType = paragraphMatch[1].toLowerCase().includes('transitorio') ? 'transitorio' : 'paragrafo';
+        const paraId = `articulo-${currentArticleNum}-${paraType}-${paraNum}`;
+        formattedLines.push(`\n<h4 id="${paraId}">${trimmed}</h4>`);
         continue;
       }
 
@@ -427,6 +473,34 @@ El documento debe comenzar con el título como encabezado nivel 1.`;
     }
 
     return formattedLines.join('\n');
+  }
+
+  /**
+   * Simplified formatting for very large texts
+   * For extremely large texts (800K+), skip formatting entirely to avoid timeout
+   */
+  private applySimplifiedFormatting(text: string): string {
+    // For extremely large texts, return as-is to avoid any processing delay
+    if (text.length > 500000) {
+      this.logger.log(`[Ingest] Text too large (${text.length} chars), skipping formatting`);
+      return text;
+    }
+
+    let result = text;
+
+    // Add IDs to articles using regex (capture article number)
+    result = result.replace(
+      /^(ART[ÍI]CULO|Art\.?)\s*(\d+)/gim,
+      (match, _prefix, num) => `<h3 id="articulo-${num}">${match}</h3>`
+    );
+
+    // Format chapters
+    result = result.replace(
+      /^(CAP[ÍI]TULO|SECCI[ÓO]N|T[ÍI]TULO)\s+([IVXLCDM\d]+)/gim,
+      '\n## $1 $2'
+    );
+
+    return result;
   }
 
   /**

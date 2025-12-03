@@ -29,6 +29,7 @@ export interface SourceReferenceDto {
   chunkIndex: number;
   score: number;
   snippet: string;
+  articleRef?: string; // Reference to article anchor (e.g., "articulo-49")
 }
 
 /**

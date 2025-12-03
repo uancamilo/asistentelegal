@@ -90,6 +90,7 @@ export interface Document {
   updatedAt: string;
   isActive: boolean;
   hierarchyLevel?: number;
+  sourceUrl?: string | null;
 }
 
 export interface CreateDocumentRequest {
@@ -101,6 +102,7 @@ export interface CreateDocumentRequest {
   summary?: string;
   fullText?: string;
   keywords?: string[];
+  sourceUrl?: string;
 }
 
 export interface UpdateDocumentRequest extends Partial<CreateDocumentRequest> {

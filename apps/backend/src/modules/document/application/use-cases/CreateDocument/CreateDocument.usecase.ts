@@ -51,6 +51,7 @@ export class CreateDocumentUseCase {
       summary: dto.summary,
       fullText: dto.fullText,
       keywords: dto.keywords || [],
+      sourceUrl: dto.sourceUrl,
       createdBy: userId,
     });
 

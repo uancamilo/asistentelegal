@@ -20,11 +20,11 @@ import { StructuredLogger } from '../../../../../infrastructure/logging';
  * This prompt instructs the LLM to:
  * - Respond only based on provided context
  * - Not invent or fabricate legal information
- * - Cite sources with document IDs
- * - Respond in Spanish (Ecuador legal domain)
+ * - Generate clickable links when citing articles
+ * - Respond in Spanish (Colombia legal domain)
  * - Adapt response length based on question type
  */
-const RAG_SYSTEM_PROMPT = `Eres un asistente jurídico especializado en normativa legal.
+const RAG_SYSTEM_PROMPT = `Eres un asistente jurídico especializado en normativa legal colombiana.
 
 INSTRUCCIONES:
 1. Responde basándote en el contexto proporcionado a continuación.
@@ -36,7 +36,6 @@ INSTRUCCIONES:
 TIPO DE RESPUESTA SEGÚN LA PREGUNTA:
 - PREGUNTAS DE DISPONIBILIDAD (¿tienes...?, ¿existe...?, ¿hay...?, ¿algún artículo habla de...?):
   Responde de forma BREVE. Si encuentras alguna mención del tema, indica dónde aparece.
-  Ejemplo: "Sí, encontré una mención sobre [tema] en [contexto]. Puedes ver más detalles en las fuentes."
 
 - PREGUNTAS ESPECÍFICAS (¿qué dice el artículo...?, ¿cuáles son los requisitos...?, explica...):
   Proporciona una respuesta DETALLADA con citas de artículos específicos.
@@ -44,10 +43,35 @@ TIPO DE RESPUESTA SEGÚN LA PREGUNTA:
 - PREGUNTAS DE BÚSQUEDA (busca..., información sobre...):
   Resume la información relevante encontrada con las citas correspondientes.
 
-FORMATO DE CITAS:
-- Usa el título del documento y el artículo si está disponible.
-- Formato: [Fuente: Nombre del Documento, Art. X] o [Fuente: Nombre del Documento]
-- Extrae el número de artículo del contenido si lo menciona (ej: "ARTÍCULO 11", "Art. 15", "PARÁGRAFO 2").
+=== FORMATO DE CITAS CON ENLACES - OBLIGATORIO ===
+
+CADA VEZ que menciones un artículo, DEBES convertirlo en un enlace Markdown INMEDIATAMENTE en el texto.
+Cada documento en el contexto incluye su documentId entre paréntesis. DEBES usarlo.
+
+FORMATO OBLIGATORIO - El enlace va EN LA PRIMERA MENCIÓN del artículo, integrado en la oración:
+El [Artículo X de NOMBRE_CORTO](/documentos/DOCUMENT_ID#articulo-X) establece que...
+
+EJEMPLOS CORRECTOS:
+- "El [Artículo 49 de la Constitución](/documentos/abc123#articulo-49) establece que la atención de la salud y el saneamiento ambiental son servicios públicos a cargo del Estado."
+- "Según el [Artículo 67 de la Constitución](/documentos/abc123#articulo-67), la educación es un derecho de la persona y un servicio público."
+- "El [Artículo 100 de la Constitución](/documentos/abc123#articulo-100) garantiza a los extranjeros los mismos derechos civiles que a los colombianos."
+
+EJEMPLOS INCORRECTOS (NO HACER):
+- "El artículo 49 establece que... (Artículo 49 de la Constitución)" <- NO poner el enlace al final
+- "**Artículo 100:** Los extranjeros..." <- NO iniciar con **Artículo X:**
+- "según el Artículo 100..." <- falta el enlace, debe ser [Artículo 100...]
+
+REGLAS CRÍTICAS:
+1. El enlace debe estar EN LA PRIMERA MENCIÓN del artículo, NO al final del párrafo
+2. Integra el enlace naturalmente en la oración: "El [Artículo X](...) establece..."
+3. NUNCA acumules referencias al final del párrafo o respuesta
+4. NUNCA inicies con "**Artículo X:**" o "Artículo X:"
+5. Usa el documentId exacto del contexto (ej: cmiq68pig0001w2uf0ub4r20f)
+6. El anchor debe ser en minúsculas sin tildes: #articulo-100, #articulo-4
+7. Usa nombre corto: "Constitución", NO el título completo
+
+FORMATO CUANDO MENCIONAS VARIOS ARTÍCULOS:
+"El [Artículo 49 de la Constitución](/documentos/ID#articulo-49) establece que la salud es un servicio público. Asimismo, el [Artículo 50 de la Constitución](/documentos/ID#articulo-50) menciona que todo niño menor de un año tiene derecho a atención gratuita."
 
 Responde en español de forma clara y profesional.`;
 
@@ -58,6 +82,7 @@ interface EnrichedChunkResult extends ChunkSearchResult {
   documentTitle: string;
   documentNumber: string | null;
   documentType: string;
+  articleRef?: string;
 }
 
 /**
@@ -357,6 +382,7 @@ export class AskAssistantUseCase {
   /**
    * Build context string from chunks with clear separators
    * Returns both the context and the count of chunks actually used
+   * Includes documentId for each document so LLM can generate proper links
    */
   private buildContextWithTracking(chunks: EnrichedChunkResult[]): {
     context: string;
@@ -370,8 +396,8 @@ export class AskAssistantUseCase {
       const chunk = chunks[i];
       if (!chunk) continue;
 
-      // Build a clean header with just the document title (no technical details)
-      const header = `───── Documento: ${chunk.documentTitle} ─────`;
+      // Build header with document title AND documentId for link generation
+      const header = `───── Documento: ${chunk.documentTitle} (documentId: ${chunk.documentId}) ─────`;
       const content = chunk.chunk.content;
       const section = `${header}\n${content}\n`;
 
@@ -451,6 +477,7 @@ export class AskAssistantUseCase {
         chunkIndex: chunk.chunk.chunkIndex,
         score: Math.round(chunk.similarity * 1000) / 1000,
         snippet: this.buildSnippet(chunk.chunk.content),
+        articleRef: chunk.articleRef || chunk.chunk.articleRef,
       }));
 
     return sources;
@@ -458,16 +485,39 @@ export class AskAssistantUseCase {
 
   /**
    * Build a short snippet from chunk content
+   * Ensures the snippet starts at the beginning of a sentence
    */
   private buildSnippet(content: string): string {
     const cleanContent = content.replace(/\s+/g, ' ').trim();
 
-    if (cleanContent.length <= this.SNIPPET_LENGTH) {
-      return cleanContent;
+    // Find a clean starting point (after a period, or at start of ARTÍCULO/Art.)
+    let startIndex = 0;
+
+    // Check if content starts with a truncated word (lowercase letter or continuation)
+    const firstChar = cleanContent.charAt(0);
+    if (firstChar === firstChar.toLowerCase() && /[a-záéíóúñ]/.test(firstChar)) {
+      // Content starts mid-sentence, find next sentence start
+      const articleMatch = cleanContent.match(/(?:ARTÍCULO|Art\.|PARÁGRAFO|Artículo)\s+\d+/i);
+      if (articleMatch && articleMatch.index !== undefined && articleMatch.index < 100) {
+        // Found an article reference nearby, start from there
+        startIndex = articleMatch.index;
+      } else {
+        // Find the next period followed by a space and uppercase letter
+        const nextSentenceMatch = cleanContent.match(/\.\s+[A-ZÁÉÍÓÚÑ]/);
+        if (nextSentenceMatch && nextSentenceMatch.index !== undefined && nextSentenceMatch.index < 80) {
+          startIndex = nextSentenceMatch.index + 2; // Start after ". "
+        }
+      }
+    }
+
+    const relevantContent = cleanContent.substring(startIndex);
+
+    if (relevantContent.length <= this.SNIPPET_LENGTH) {
+      return relevantContent;
     }
 
     // Try to cut at a sentence or word boundary
-    const truncated = cleanContent.substring(0, this.SNIPPET_LENGTH);
+    const truncated = relevantContent.substring(0, this.SNIPPET_LENGTH);
     const lastPeriod = truncated.lastIndexOf('.');
     const lastSpace = truncated.lastIndexOf(' ');
 

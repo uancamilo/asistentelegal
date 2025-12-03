@@ -48,6 +48,11 @@ export class CreateDocumentDto {
   @IsArray()
   @IsString({ each: true })
   keywords?: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  sourceUrl?: string;
 }
 
 /**

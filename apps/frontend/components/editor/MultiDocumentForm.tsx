@@ -182,6 +182,7 @@ export function MultiDocumentForm({
             summary: doc.summary || undefined,
             fullText: contentToSend,
             keywords: keywordsArray.length > 0 ? keywordsArray : undefined,
+            sourceUrl: sourceUrl || undefined,
           };
 
           await createDocument(payload);

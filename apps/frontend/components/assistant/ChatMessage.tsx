@@ -28,6 +28,35 @@ function renderMarkdown(text: string): React.ReactNode[] {
     let remaining = line;
     let partIndex = 0;
 
+    // Process Markdown links [text](url) - MUST be processed first before other formatting
+    while (remaining.includes('[') && remaining.includes('](')) {
+      const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/;
+      const match = remaining.match(linkRegex);
+      if (!match) break;
+
+      const beforeLink = remaining.substring(0, match.index);
+      if (beforeLink) {
+        parts.push(beforeLink);
+      }
+
+      const linkText = match[1];
+      const linkUrl = match[2];
+
+      parts.push(
+        <a
+          key={`${key}-link-${partIndex++}`}
+          href={linkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
+        >
+          {linkText}
+        </a>
+      );
+
+      remaining = remaining.substring((match.index || 0) + match[0].length);
+    }
+
     // Process bold (**text**)
     while (remaining.includes('**')) {
       const startIdx = remaining.indexOf('**');
@@ -45,7 +74,7 @@ function renderMarkdown(text: string): React.ReactNode[] {
       remaining = remaining.substring(endIdx + 2);
     }
 
-    // Process italic (*text*)
+    // Process italic (*text*) - be careful not to match inside links already processed
     if (remaining.includes('*')) {
       const processed: React.ReactNode[] = [];
       const segments = remaining.split(/\*([^*]+)\*/g);
