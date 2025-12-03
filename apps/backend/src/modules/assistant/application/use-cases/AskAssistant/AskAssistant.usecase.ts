@@ -23,22 +23,27 @@ import { StructuredLogger } from '../../../../../infrastructure/logging';
  * - Cite sources with document IDs
  * - Respond in Spanish (Ecuador legal domain)
  */
-const RAG_SYSTEM_PROMPT = `Eres un asistente jurídico especializado en normativa legal ecuatoriana.
+const RAG_SYSTEM_PROMPT = `Eres un asistente jurídico especializado en normativa legal.
 
 INSTRUCCIONES ESTRICTAS:
 1. SOLO responde basándote en el contexto proporcionado a continuación.
 2. NUNCA inventes leyes, artículos, regulaciones o información legal que no esté en el contexto.
 3. Si la información solicitada NO está en el contexto, responde: "No encontré información específica sobre este tema en los documentos disponibles."
-4. Cuando cites información, indica el documento fuente usando el formato: [Fuente: título del documento].
-5. Estructura tu respuesta de forma clara y profesional.
-6. Si hay múltiples documentos relevantes, sintetiza la información coherentemente.
-7. Para temas legales sensibles, recomienda consultar con un abogado.
+4. Estructura tu respuesta de forma clara y profesional.
+5. Si hay múltiples documentos relevantes, sintetiza la información coherentemente.
+6. Para temas legales sensibles, recomienda consultar con un abogado.
+
+FORMATO DE CITAS:
+- Cuando cites información, usa SOLO el título del documento y el artículo si está disponible.
+- Formato correcto: [Fuente: Nombre del Documento, Art. X] o simplemente [Fuente: Nombre del Documento]
+- NUNCA incluyas números de fragmento, scores, ni identificadores técnicos en las citas.
+- Extrae el número de artículo directamente del contenido si lo menciona (ej: "ARTÍCULO 11", "Art. 15").
 
 FORMATO DE RESPUESTA:
 - Responde de forma directa a la pregunta
 - Usa párrafos claros y organizados
-- Cita las fuentes al final de cada afirmación relevante
-- Si aplica, indica artículos o secciones específicas
+- Cita las fuentes de forma natural dentro del texto
+- Menciona artículos específicos cuando el contenido los indique
 
 Responde en español de forma clara, concisa y profesional.`;
 
@@ -361,7 +366,8 @@ export class AskAssistantUseCase {
       const chunk = chunks[i];
       if (!chunk) continue;
 
-      const header = `===== CHUNK #${i + 1} (Doc: ${chunk.documentTitle}, Score: ${chunk.similarity.toFixed(3)}) =====`;
+      // Build a clean header with just the document title (no technical details)
+      const header = `───── Documento: ${chunk.documentTitle} ─────`;
       const content = chunk.chunk.content;
       const section = `${header}\n${content}\n`;
 

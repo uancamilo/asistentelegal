@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge'
 import { FileText, Calendar, Building, Tag, Globe } from 'lucide-react'
 import type { Document, DocumentType, DocumentScope, DocumentStatus } from '@/lib/types'
 import { translateDocumentType, translateDocumentStatus, translateDocumentScope } from '@/lib/translations'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 interface DocumentViewerProps {
   document: Document
@@ -113,18 +115,126 @@ export default function DocumentViewer({ document }: DocumentViewerProps) {
         </Card>
       )}
 
-      {/* Full Text */}
+      {/* Full Text - Markdown Rendered */}
       {document.fullText && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Contenido Completo</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="prose max-w-none">
-              <p className="text-gray-700 whitespace-pre-wrap font-mono text-sm">
+            <div className="prose prose-sm dark:prose-invert max-w-none document-content">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {document.fullText}
-              </p>
+              </ReactMarkdown>
             </div>
+            <style jsx global>{`
+              .document-content {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+              }
+
+              .document-content h1 {
+                font-size: 1.75rem;
+                font-weight: 700;
+                margin-top: 1.5rem;
+                margin-bottom: 1rem;
+                padding-bottom: 0.5rem;
+                border-bottom: 2px solid #e5e7eb;
+              }
+
+              .document-content h2 {
+                font-size: 1.4rem;
+                font-weight: 600;
+                margin-top: 1.25rem;
+                margin-bottom: 0.75rem;
+                color: #374151;
+              }
+
+              .dark .document-content h2 {
+                color: #d1d5db;
+              }
+
+              .document-content h3 {
+                font-size: 1.15rem;
+                font-weight: 600;
+                margin-top: 1rem;
+                margin-bottom: 0.5rem;
+                color: #1f2937;
+              }
+
+              .dark .document-content h3 {
+                color: #e5e7eb;
+              }
+
+              .document-content p {
+                margin-bottom: 0.75rem;
+                line-height: 1.7;
+                text-align: justify;
+              }
+
+              .document-content ul, .document-content ol {
+                margin-left: 1.5rem;
+                margin-bottom: 0.75rem;
+              }
+
+              .document-content li {
+                margin-bottom: 0.25rem;
+              }
+
+              .document-content blockquote {
+                border-left: 4px solid #3b82f6;
+                padding-left: 1rem;
+                margin-left: 0;
+                margin-right: 0;
+                font-style: italic;
+                color: #6b7280;
+                background-color: #f9fafb;
+                padding: 0.5rem 1rem;
+                border-radius: 0 0.25rem 0.25rem 0;
+              }
+
+              .dark .document-content blockquote {
+                background-color: #1f2937;
+                color: #9ca3af;
+              }
+
+              .document-content hr {
+                margin: 1.5rem 0;
+                border-color: #e5e7eb;
+              }
+
+              .dark .document-content hr {
+                border-color: #374151;
+              }
+
+              .document-content strong {
+                font-weight: 600;
+              }
+
+              .document-content table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 1rem;
+              }
+
+              .document-content th, .document-content td {
+                border: 1px solid #e5e7eb;
+                padding: 0.5rem;
+                text-align: left;
+              }
+
+              .dark .document-content th, .dark .document-content td {
+                border-color: #374151;
+              }
+
+              .document-content th {
+                background-color: #f9fafb;
+                font-weight: 600;
+              }
+
+              .dark .document-content th {
+                background-color: #1f2937;
+              }
+            `}</style>
           </CardContent>
         </Card>
       )}

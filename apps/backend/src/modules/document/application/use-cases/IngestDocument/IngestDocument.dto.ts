@@ -39,6 +39,9 @@ export interface DetectedDocumentMetadata {
   /** Extracted full text content */
   content: string;
 
+  /** Content converted to structured Markdown */
+  contentMarkdown: string;
+
   /** Number of chunks created */
   chunksCount: number;
 

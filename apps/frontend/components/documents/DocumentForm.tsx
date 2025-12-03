@@ -18,6 +18,7 @@ import { ButtonLoadingIndicator } from '@/components/ui/LoadingIndicator'
 import { Save, ArrowLeft } from 'lucide-react'
 import { createDocument, updateDocument } from '@/lib/api/documents'
 import type { Document, DocumentType, DocumentScope, CreateDocumentRequest, UpdateDocumentRequest } from '@/lib/types'
+import { MarkdownSplitEditor } from '@/components/editor/MarkdownSplitEditor'
 
 interface DocumentFormProps {
   document?: Document
@@ -244,18 +245,12 @@ export default function DocumentForm({ document, mode, onSuccess, redirectPath }
             <p className="text-sm text-gray-500">{formData.summary.length}/2000 caracteres</p>
           </div>
 
-          {/* Full Text */}
-          <div className="space-y-2">
-            <Label htmlFor="fullText">Texto Completo</Label>
-            <textarea
-              id="fullText"
-              name="fullText"
-              value={formData.fullText}
-              onChange={(e) => handleChange('fullText', e.target.value)}
-              placeholder="Contenido completo del documento legal..."
-              className="w-full min-h-[300px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-            />
-          </div>
+          {/* Full Text - Markdown Split Editor */}
+          <MarkdownSplitEditor
+            value={formData.fullText}
+            onChange={(value) => handleChange('fullText', value)}
+            label="Contenido del Documento (Markdown)"
+          />
 
           {/* Keywords */}
           <div className="space-y-2">

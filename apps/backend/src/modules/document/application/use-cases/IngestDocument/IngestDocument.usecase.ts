@@ -135,8 +135,19 @@ export class IngestDocumentUseCase {
       detectedDocuments = [this.createFallbackMetadata(extractedText)];
     }
 
-    // Step 5: Create chunks for each detected document
+    // Step 5: Convert content to Markdown for each detected document
     for (const doc of detectedDocuments) {
+      try {
+        this.logger.log(`[Ingest] Converting content to Markdown for: ${doc.title}`);
+        doc.contentMarkdown = await this.convertToMarkdown(doc.content, doc.title);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`[Ingest] Markdown conversion failed, using plain text: ${errorMessage}`);
+        warnings.push(`Markdown conversion failed for "${doc.title}": ${errorMessage}`);
+        doc.contentMarkdown = this.createBasicMarkdown(doc.content, doc.title);
+      }
+
+      // Create chunks from original content (not markdown) for embeddings
       const chunks = chunkText(doc.content, {
         targetSize: 1200,
         minSize: 500,
@@ -289,10 +300,133 @@ Si hay VARIOS documentos, devuelve un array con todos ellos en orden de aparici�
       date: null,
       summary: '',
       content: text,
+      contentMarkdown: this.createBasicMarkdown(text, potentialTitle || 'Documento importado'),
       chunksCount: 0,
       keywords: [],
       confidence: 0.3,
     };
+  }
+
+  /**
+   * Convert extracted text to structured Markdown using LLM
+   */
+  private async convertToMarkdown(text: string, title: string): Promise<string> {
+    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
+    if (!apiKey) {
+      throw new Error('OPENAI_API_KEY not configured');
+    }
+
+    // For very long texts, we need to truncate for LLM processing
+    // but preserve the original structure
+    const maxLlmChars = 30000;
+    const textForConversion = text.substring(0, maxLlmChars);
+    const needsTruncationNote = text.length > maxLlmChars;
+
+    const systemPrompt = `Eres un experto en formateo de documentos legales.
+Tu tarea es convertir texto plano extraído de un PDF legal a formato Markdown estructurado.
+
+INSTRUCCIONES:
+1. Identifica y formatea correctamente:
+   - Títulos y subtítulos (usar # ## ###)
+   - Artículos (### Art. X o ### ARTÍCULO X)
+   - Capítulos y secciones (## CAPÍTULO X)
+   - Listas numeradas o con viñetas
+   - Párrafos separados claramente
+
+2. Preserva TODO el contenido - no elimines ni resumas nada
+3. Mejora la legibilidad con saltos de línea apropiados
+4. Usa **negrita** para términos importantes definidos
+5. Usa > blockquotes para citas textuales dentro del documento
+
+FORMATO DE SALIDA:
+Devuelve ÚNICAMENTE el texto convertido a Markdown, sin explicaciones adicionales.
+El documento debe comenzar con el título como encabezado nivel 1.`;
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          {
+            role: 'user',
+            content: `Convierte el siguiente documento legal "${title}" a Markdown estructurado:\n\n${textForConversion}`
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: 16000,
+      });
+
+      let markdown = response.choices[0]?.message?.content || '';
+
+      if (!markdown.trim()) {
+        throw new Error('Empty response from LLM');
+      }
+
+      // If text was truncated, append the remaining content with basic formatting
+      if (needsTruncationNote && text.length > maxLlmChars) {
+        const remainingText = text.substring(maxLlmChars);
+        markdown += '\n\n---\n\n' + this.applyBasicMarkdownFormatting(remainingText);
+      }
+
+      return markdown;
+    } catch (error) {
+      this.logger.error(`[Ingest] Markdown conversion error: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Create basic Markdown when LLM is unavailable
+   */
+  private createBasicMarkdown(text: string, title: string): string {
+    let markdown = `# ${title}\n\n`;
+    markdown += this.applyBasicMarkdownFormatting(text);
+    return markdown;
+  }
+
+  /**
+   * Apply basic Markdown formatting rules to text
+   */
+  private applyBasicMarkdownFormatting(text: string): string {
+    const lines = text.split('\n');
+    const formattedLines: string[] = [];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        formattedLines.push('');
+        continue;
+      }
+
+      // Detect article patterns
+      if (/^(ART[ÍI]CULO|Art\.?)\s*\d+/i.test(trimmed)) {
+        formattedLines.push(`\n### ${trimmed}`);
+        continue;
+      }
+
+      // Detect chapter/section patterns
+      if (/^(CAP[ÍI]TULO|SECCI[ÓO]N|T[ÍI]TULO)\s+[IVXLCDM\d]+/i.test(trimmed)) {
+        formattedLines.push(`\n## ${trimmed}`);
+        continue;
+      }
+
+      // Detect numbered items
+      if (/^\d+[\.\)\-]\s/.test(trimmed)) {
+        formattedLines.push(trimmed);
+        continue;
+      }
+
+      // Detect lettered items
+      if (/^[a-z][\.\)]\s/i.test(trimmed)) {
+        formattedLines.push(`   ${trimmed}`);
+        continue;
+      }
+
+      // Regular paragraph
+      formattedLines.push(trimmed);
+    }
+
+    return formattedLines.join('\n');
   }
 
   /**

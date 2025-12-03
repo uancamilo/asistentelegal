@@ -451,8 +451,10 @@ export interface DetectedDocumentMetadata {
   date: string | null;
   /** Auto-generated summary */
   summary: string;
-  /** Extracted content */
+  /** Extracted content (plain text) */
   content: string;
+  /** Content converted to structured Markdown */
+  contentMarkdown: string;
   /** Number of chunks */
   chunksCount: number;
   /** Auto-detected keywords */

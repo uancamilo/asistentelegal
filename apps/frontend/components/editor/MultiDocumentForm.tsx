@@ -25,6 +25,7 @@ import {
   DOCUMENT_SCOPE_LABELS,
 } from '@/lib/api/ingestion';
 import type { CreateDocumentRequest } from '@/lib/types';
+import { MarkdownSplitEditor } from './MarkdownSplitEditor';
 
 /**
  * Form data for a single document
@@ -38,6 +39,7 @@ export interface DocumentFormData {
   issuingEntity: string;
   summary: string;
   fullText: string;
+  fullTextMarkdown: string; // Markdown version for editor
   keywords: string;
   date: string;
   isExpanded: boolean;
@@ -56,6 +58,7 @@ function createEmptyDocument(): DocumentFormData {
     issuingEntity: '',
     summary: '',
     fullText: '',
+    fullTextMarkdown: '',
     keywords: '',
     date: '',
     isExpanded: true,
@@ -75,6 +78,7 @@ function metadataToFormData(metadata: DetectedDocumentMetadata): DocumentFormDat
     issuingEntity: metadata.issuingEntity || '',
     summary: metadata.summary || '',
     fullText: metadata.content || '',
+    fullTextMarkdown: metadata.contentMarkdown || metadata.content || '',
     keywords: metadata.keywords?.join(', ') || '',
     date: metadata.date || '',
     isExpanded: true,
@@ -166,6 +170,9 @@ export function MultiDocumentForm({
             .map(k => k.trim())
             .filter(k => k.length > 0);
 
+          // Use markdown content if available, otherwise fall back to plain text
+          const contentToSend = doc.fullTextMarkdown || doc.fullText || undefined;
+
           const payload: CreateDocumentRequest = {
             title: doc.title,
             documentNumber: doc.documentNumber || undefined,
@@ -173,7 +180,7 @@ export function MultiDocumentForm({
             scope: doc.scope,
             issuingEntity: doc.issuingEntity,
             summary: doc.summary || undefined,
-            fullText: doc.fullText || undefined,
+            fullText: contentToSend,
             keywords: keywordsArray.length > 0 ? keywordsArray : undefined,
           };
 
@@ -392,19 +399,12 @@ export function MultiDocumentForm({
                 <p className="text-xs text-gray-500">{doc.summary.length}/2000 caracteres</p>
               </div>
 
-              {/* Full Text */}
-              <div className="space-y-2">
-                <Label htmlFor={`fullText-${doc.id}`}>Texto Completo</Label>
-                <textarea
-                  id={`fullText-${doc.id}`}
-                  name={`fullText-${doc.id}`}
-                  value={doc.fullText}
-                  onChange={(e) => updateDocument(doc.id, 'fullText', e.target.value)}
-                  placeholder="Contenido completo del documento legal..."
-                  className="w-full min-h-[200px] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm bg-white dark:bg-gray-800"
-                />
-                <p className="text-xs text-gray-500">{doc.fullText.length.toLocaleString()} caracteres</p>
-              </div>
+              {/* Full Text - Markdown Split Editor */}
+              <MarkdownSplitEditor
+                value={doc.fullTextMarkdown}
+                onChange={(value) => updateDocument(doc.id, 'fullTextMarkdown', value)}
+                label="Contenido del Documento (Markdown)"
+              />
 
               {/* Keywords */}
               <div className="space-y-2">
