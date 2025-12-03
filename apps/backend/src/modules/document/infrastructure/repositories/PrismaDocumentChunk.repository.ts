@@ -20,7 +20,7 @@ export class PrismaDocumentChunkRepository implements IDocumentChunkRepository {
 
   async createChunks(
     documentId: string,
-    chunks: Array<{ chunkIndex: number; content: string; embedding: number[] }>,
+    chunks: Array<{ chunkIndex: number; content: string; embedding: number[]; articleRef?: string }>,
   ): Promise<DocumentChunkEntity[]> {
     if (chunks.length === 0) {
       return [];
@@ -34,6 +34,7 @@ export class PrismaDocumentChunkRepository implements IDocumentChunkRepository {
 
     for (const chunk of chunks) {
       const embeddingString = `[${chunk.embedding.join(',')}]`;
+      const articleRef = chunk.articleRef || null;
 
       // Use raw SQL to insert with vector type
       const result = await this.prisma.$queryRaw<Array<{
@@ -41,20 +42,22 @@ export class PrismaDocumentChunkRepository implements IDocumentChunkRepository {
         documentId: string;
         chunkIndex: number;
         content: string;
+        articleRef: string | null;
         createdAt: Date;
         updatedAt: Date;
       }>>`
-        INSERT INTO "document_chunks" ("id", "documentId", "chunkIndex", "content", "embedding", "createdAt", "updatedAt")
+        INSERT INTO "document_chunks" ("id", "documentId", "chunkIndex", "content", "articleRef", "embedding", "createdAt", "updatedAt")
         VALUES (
           gen_random_uuid()::text,
           ${documentId},
           ${chunk.chunkIndex},
           ${chunk.content},
+          ${articleRef},
           ${embeddingString}::vector,
           NOW(),
           NOW()
         )
-        RETURNING "id", "documentId", "chunkIndex", "content", "createdAt", "updatedAt"
+        RETURNING "id", "documentId", "chunkIndex", "content", "articleRef", "createdAt", "updatedAt"
       `;
 
       if (result.length > 0 && result[0]) {
@@ -64,6 +67,7 @@ export class PrismaDocumentChunkRepository implements IDocumentChunkRepository {
           documentId: row.documentId,
           chunkIndex: row.chunkIndex,
           content: row.content,
+          articleRef: row.articleRef || undefined,
           embedding: chunk.embedding,
           createdAt: row.createdAt,
           updatedAt: row.updatedAt,
@@ -209,7 +213,7 @@ export class PrismaDocumentChunkRepository implements IDocumentChunkRepository {
       limit?: number;
       minSimilarity?: number;
     },
-  ): Promise<Array<ChunkSearchResult & { documentTitle: string; documentNumber: string | null; documentType: string }>> {
+  ): Promise<Array<ChunkSearchResult & { documentTitle: string; documentNumber: string | null; documentType: string; articleRef?: string }>> {
     const limit = options?.limit ?? 10;
     const minSimilarity = options?.minSimilarity ?? 0.5;
     const embeddingString = `[${embedding.join(',')}]`;
@@ -221,6 +225,7 @@ export class PrismaDocumentChunkRepository implements IDocumentChunkRepository {
         documentId: string;
         chunkIndex: number;
         content: string;
+        articleRef: string | null;
         createdAt: Date;
         updatedAt: Date;
         similarity: number;
@@ -234,6 +239,7 @@ export class PrismaDocumentChunkRepository implements IDocumentChunkRepository {
         c."documentId",
         c."chunkIndex",
         c."content",
+        c."articleRef",
         c."createdAt",
         c."updatedAt",
         1 - (c."embedding" <=> ${embeddingString}::vector) as similarity,
@@ -259,6 +265,7 @@ export class PrismaDocumentChunkRepository implements IDocumentChunkRepository {
           documentId: r.documentId,
           chunkIndex: r.chunkIndex,
           content: r.content,
+          articleRef: r.articleRef || undefined,
           createdAt: r.createdAt,
           updatedAt: r.updatedAt,
         },
@@ -267,6 +274,7 @@ export class PrismaDocumentChunkRepository implements IDocumentChunkRepository {
         documentTitle: r.documentTitle,
         documentNumber: r.documentNumber,
         documentType: r.documentType,
+        articleRef: r.articleRef || undefined,
       }));
   }
 

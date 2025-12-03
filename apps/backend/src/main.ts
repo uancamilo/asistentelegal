@@ -177,7 +177,9 @@ async function bootstrap() {
   // Obtener puerto de configuración
   const port = configService.get<number>('app.port') || 3000;
 
-  await app.listen(port, '0.0.0.0');
+  // Aumentar timeout del servidor para operaciones largas (ingesta de documentos grandes)
+  const server = await app.listen(port, '0.0.0.0');
+  server.setTimeout(120000); // 2 minutos para documentos muy grandes
 
   console.log(`🚀 Application is running on: http://localhost:${port}/api`);
 }

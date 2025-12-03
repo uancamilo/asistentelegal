@@ -109,6 +109,14 @@ const nextConfig = {
     // Default is ~30 seconds, we extend to 2 minutes for PDF processing + OpenAI analysis
     proxyTimeout: 120000, // 120 seconds = 2 minutes
   },
+
+  // Server configuration for handling long-running API requests
+  serverExternalPackages: [],
+
+  // HTTP agent options for proxy requests
+  httpAgentOptions: {
+    keepAlive: true,
+  },
 };
 
 module.exports = nextConfig;

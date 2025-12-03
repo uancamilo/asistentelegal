@@ -9,6 +9,7 @@ export interface DocumentChunkData {
   documentId: string;
   chunkIndex: number;
   content: string;
+  articleRef?: string;
   embedding?: number[];
 }
 
@@ -17,6 +18,7 @@ export interface DocumentChunkEntity {
   documentId: string;
   chunkIndex: number;
   content: string;
+  articleRef?: string; // Reference to article anchor (e.g., "articulo-49")
   embedding?: number[];
   createdAt: Date;
   updatedAt: Date;
@@ -35,7 +37,7 @@ export interface IDocumentChunkRepository {
    */
   createChunks(
     documentId: string,
-    chunks: Array<{ chunkIndex: number; content: string; embedding: number[] }>,
+    chunks: Array<{ chunkIndex: number; content: string; embedding: number[]; articleRef?: string }>,
   ): Promise<DocumentChunkEntity[]>;
 
   /**

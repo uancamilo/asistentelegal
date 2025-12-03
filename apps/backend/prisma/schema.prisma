@@ -375,6 +375,7 @@ model DocumentChunk {
   // Información del chunk
   chunkIndex Int // Índice del chunk dentro del documento (0, 1, 2...)
   content    String @db.Text // Contenido del chunk
+  articleRef String? // Referencia al artículo (ej: "articulo-49", "articulo-107-paragrafo-2")
 
   // Embedding para búsqueda semántica
   embedding Unsupported("vector(1536)")? // Vector de embeddings (text-embedding-3-small)

@@ -436,6 +436,7 @@ export class DocumentProcessor extends WorkerHost implements OnModuleInit {
       chunkIndex: number;
       content: string;
       embedding: number[];
+      articleRef?: string;
     }> = [];
 
     try {
@@ -460,6 +461,7 @@ export class DocumentProcessor extends WorkerHost implements OnModuleInit {
             chunkIndex: chunk.index,
             content: chunk.content,
             embedding: embedding,
+            articleRef: chunk.articleRef,
           });
         } else {
           this.logger.warn(`[Embedding] WARNING: No embedding generated for chunk ${i}`);

@@ -217,6 +217,7 @@ INTERNACIONAL INTERNACIONAL
     String id "🗝️"
     Int chunkIndex 
     String content 
+    String articleRef "❓"
     DateTime createdAt 
     DateTime updatedAt 
     }
