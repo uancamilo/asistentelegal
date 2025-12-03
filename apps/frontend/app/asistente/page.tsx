@@ -188,7 +188,7 @@ export default function AssistantPage() {
                 Asistente Legal Inteligente
               </h1>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Consultas basadas en normativa ecuatoriana
+                Consultas basadas en normativa almacenada en la base de datos
               </p>
             </div>
           </div>

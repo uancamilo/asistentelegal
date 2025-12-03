@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import type { RagSource } from '../../lib/api/assistant';
 
 interface SourceCardProps {
@@ -10,18 +11,9 @@ interface SourceCardProps {
 /**
  * SourceCard - Displays a single source reference from a RAG response
  *
- * Shows document title, number, relevance score, and a snippet of the content.
+ * Shows document title (clickable), number, and a snippet of the content.
  */
 export function SourceCard({ source, index }: SourceCardProps) {
-  const scorePercentage = Math.round(source.score * 100);
-
-  // Color coding for score
-  const getScoreColor = (score: number) => {
-    if (score >= 0.8) return 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30';
-    if (score >= 0.6) return 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/30';
-    return 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30';
-  };
-
   // Truncate snippet if too long
   const truncateSnippet = (text: string, maxLength = 200): string => {
     if (text.length <= maxLength) return text;
@@ -33,7 +25,7 @@ export function SourceCard({ source, index }: SourceCardProps) {
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:border-blue-300 dark:hover:border-blue-600 transition-colors bg-white dark:bg-gray-800">
       {/* Header */}
-      <div className="flex items-start justify-between gap-2 mb-2">
+      <div className="flex items-start gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           {/* Document icon */}
           <span className="flex-shrink-0 text-blue-600 dark:text-blue-400">
@@ -47,11 +39,14 @@ export function SourceCard({ source, index }: SourceCardProps) {
             </svg>
           </span>
 
-          {/* Title and document number */}
+          {/* Title (clickable) and document number */}
           <div className="min-w-0 flex-1">
-            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+            <Link
+              href={`/documentos/${source.documentId}`}
+              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline truncate block"
+            >
               {source.title}
-            </h4>
+            </Link>
             {source.documentNumber && (
               <span className="text-xs text-gray-500 dark:text-gray-400">
                 {source.documentNumber}
@@ -59,13 +54,6 @@ export function SourceCard({ source, index }: SourceCardProps) {
             )}
           </div>
         </div>
-
-        {/* Score badge */}
-        <span
-          className={`flex-shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${getScoreColor(source.score)}`}
-        >
-          {scorePercentage}%
-        </span>
       </div>
 
       {/* Snippet */}
@@ -74,13 +62,6 @@ export function SourceCard({ source, index }: SourceCardProps) {
         {truncateSnippet(source.snippet)}
         <span className="text-gray-400 dark:text-gray-500">&rdquo;</span>
       </p>
-
-      {/* Footer - chunk info */}
-      <div className="mt-2 flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
-        <span>Fuente #{index + 1}</span>
-        <span>•</span>
-        <span>Fragmento {source.chunkIndex + 1}</span>
-      </div>
     </div>
   );
 }

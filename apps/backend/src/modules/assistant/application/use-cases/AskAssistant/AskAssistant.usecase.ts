@@ -22,30 +22,34 @@ import { StructuredLogger } from '../../../../../infrastructure/logging';
  * - Not invent or fabricate legal information
  * - Cite sources with document IDs
  * - Respond in Spanish (Ecuador legal domain)
+ * - Adapt response length based on question type
  */
 const RAG_SYSTEM_PROMPT = `Eres un asistente jurídico especializado en normativa legal.
 
-INSTRUCCIONES ESTRICTAS:
-1. SOLO responde basándote en el contexto proporcionado a continuación.
-2. NUNCA inventes leyes, artículos, regulaciones o información legal que no esté en el contexto.
-3. Si la información solicitada NO está en el contexto, responde: "No encontré información específica sobre este tema en los documentos disponibles."
-4. Estructura tu respuesta de forma clara y profesional.
-5. Si hay múltiples documentos relevantes, sintetiza la información coherentemente.
-6. Para temas legales sensibles, recomienda consultar con un abogado.
+INSTRUCCIONES:
+1. Responde basándote en el contexto proporcionado a continuación.
+2. NUNCA inventes leyes, artículos o información legal que no esté en el contexto.
+3. Si el tema consultado aparece mencionado en el contexto (aunque sea parcialmente o en un contexto diferente), SIEMPRE informa al usuario qué encontraste y en qué contexto aparece.
+4. Solo responde "No encontré información sobre este tema" si realmente NO hay NINGUNA mención relacionada en el contexto.
+5. Estructura tu respuesta de forma clara y profesional.
+
+TIPO DE RESPUESTA SEGÚN LA PREGUNTA:
+- PREGUNTAS DE DISPONIBILIDAD (¿tienes...?, ¿existe...?, ¿hay...?, ¿algún artículo habla de...?):
+  Responde de forma BREVE. Si encuentras alguna mención del tema, indica dónde aparece.
+  Ejemplo: "Sí, encontré una mención sobre [tema] en [contexto]. Puedes ver más detalles en las fuentes."
+
+- PREGUNTAS ESPECÍFICAS (¿qué dice el artículo...?, ¿cuáles son los requisitos...?, explica...):
+  Proporciona una respuesta DETALLADA con citas de artículos específicos.
+
+- PREGUNTAS DE BÚSQUEDA (busca..., información sobre...):
+  Resume la información relevante encontrada con las citas correspondientes.
 
 FORMATO DE CITAS:
-- Cuando cites información, usa SOLO el título del documento y el artículo si está disponible.
-- Formato correcto: [Fuente: Nombre del Documento, Art. X] o simplemente [Fuente: Nombre del Documento]
-- NUNCA incluyas números de fragmento, scores, ni identificadores técnicos en las citas.
-- Extrae el número de artículo directamente del contenido si lo menciona (ej: "ARTÍCULO 11", "Art. 15").
+- Usa el título del documento y el artículo si está disponible.
+- Formato: [Fuente: Nombre del Documento, Art. X] o [Fuente: Nombre del Documento]
+- Extrae el número de artículo del contenido si lo menciona (ej: "ARTÍCULO 11", "Art. 15", "PARÁGRAFO 2").
 
-FORMATO DE RESPUESTA:
-- Responde de forma directa a la pregunta
-- Usa párrafos claros y organizados
-- Cita las fuentes de forma natural dentro del texto
-- Menciona artículos específicos cuando el contenido los indique
-
-Responde en español de forma clara, concisa y profesional.`;
+Responde en español de forma clara y profesional.`;
 
 /**
  * Extended chunk result with document metadata
@@ -91,7 +95,7 @@ export class AskAssistantUseCase {
   // Configuration constants
   private readonly MAX_CHUNKS = 6;
   private readonly MAX_CONTEXT_CHARS = 6000;
-  private readonly MIN_SIMILARITY = 0.4;
+  private readonly MIN_SIMILARITY = 0.25; // Lowered from 0.4 - embeddings often have lower similarity scores
   private readonly SNIPPET_LENGTH = 200;
 
   constructor(
