@@ -3,7 +3,7 @@ import { DOCUMENT_REPOSITORY } from '../../../domain/constants/tokens';
 import { IDocumentRepository } from '../../../domain/repositories/Document.repository.interface';
 import { DocumentEntity } from '../../../domain/entities/Document.entity';
 import { UpdateDocumentDto } from '../../dtos/Document.dto';
-import { OpenAIService } from '../../../../../shared/openai/OpenAI.service';
+import { ProcessingStatus } from '../../../domain/entities/DocumentEnums';
 
 /**
  * Use Case: Update Document
@@ -12,9 +12,13 @@ import { OpenAIService } from '../../../../../shared/openai/OpenAI.service';
  * 1. Find existing document
  * 2. Validate document number uniqueness (if changed)
  * 3. Update document content using domain logic
- * 4. Regenerate embedding if fullText changed
+ * 4. Mark embedding as pending if fullText changed (will be regenerated via queue)
  * 5. Persist changes
  * 6. Return updated document
+ *
+ * Note: Embedding regeneration is now handled asynchronously via the document processor.
+ * When fullText changes, embeddingStatus is set to PENDING and chunks will be regenerated
+ * when the document is re-processed.
  *
  * Authorization: EDITOR, ADMIN, SUPER_ADMIN (creator or higher role)
  */
@@ -23,7 +27,6 @@ export class UpdateDocumentUseCase {
   constructor(
     @Inject(DOCUMENT_REPOSITORY)
     private readonly documentRepository: IDocumentRepository,
-    private readonly openAIService: OpenAIService,
   ) {}
 
   async execute(
@@ -59,19 +62,17 @@ export class UpdateDocumentUseCase {
       updatedBy: userId,
     });
 
-    // 4. Regenerate embedding if fullText changed
-    if (dto.fullText !== undefined) {
-      try {
-        const textForEmbedding = `${document.title}\n\n${document.summary || ''}\n\n${document.fullText?.substring(0, 2000) || ''}`;
-        const embedding = await this.openAIService.generateEmbedding(textForEmbedding);
-        document.setEmbedding(embedding);
-      } catch (error) {
-        // Embedding regeneration failed, continue without updating it
-      }
-    }
+    // 4. Mark embedding as pending if fullText changed (will be regenerated via queue)
+    const needsEmbeddingRegeneration = dto.fullText !== undefined;
 
     // 5. Persist changes
-    const updated = await this.documentRepository.update(documentId, document);
+    const updated = await this.documentRepository.update(documentId, {
+      ...document,
+      // Mark embedding as pending if content changed - chunks will be regenerated
+      ...(needsEmbeddingRegeneration && {
+        embeddingStatus: ProcessingStatus.PENDING,
+      }),
+    });
 
     return updated;
   }

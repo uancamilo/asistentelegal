@@ -84,6 +84,7 @@ DESARROLLA DESARROLLA
 PROCESSING PROCESSING
 COMPLETED COMPLETED
 FAILED FAILED
+SKIPPED SKIPPED
 MANUAL MANUAL
         }
     
@@ -188,6 +189,12 @@ INTERNACIONAL INTERNACIONAL
     String fullText "❓"
     String observations "❓"
     String keywords 
+    String sourceUrl "❓"
+    ProcessingStatus processingStatus 
+    ProcessingStatus embeddingStatus 
+    String embeddingError "❓"
+    DateTime reviewedAt "❓"
+    String rejectionReason "❓"
     DateTime publishedAt "❓"
     DateTime createdAt 
     DateTime updatedAt 
@@ -203,6 +210,16 @@ INTERNACIONAL INTERNACIONAL
     String changeLog "❓"
     String reason "❓"
     DateTime createdAt 
+    }
+  
+
+  "document_chunks" {
+    String id "🗝️"
+    Int chunkIndex 
+    String content 
+    String articleRef "❓"
+    DateTime createdAt 
+    DateTime updatedAt 
     }
   
 
@@ -290,6 +307,7 @@ INTERNACIONAL INTERNACIONAL
     "User" o{--}o "documents" : "createdDocuments"
     "User" o{--}o "documents" : "updatedDocuments"
     "User" o{--}o "documents" : "publishedDocuments"
+    "User" o{--}o "documents" : "reviewedDocuments"
     "User" o{--}o "document_versions" : "createdDocumentVersions"
     "User" o{--}o "document_files" : "uploadedDocumentFiles"
     "User" o{--}o "document_relations" : "createdDocumentRelations"
@@ -302,11 +320,15 @@ INTERNACIONAL INTERNACIONAL
     "documents" o|--|| "DocumentType" : "enum:type"
     "documents" o|--|| "DocumentScope" : "enum:scope"
     "documents" o|--|| "DocumentStatus" : "enum:status"
+    "documents" o|--|| "ProcessingStatus" : "enum:processingStatus"
+    "documents" o|--|| "ProcessingStatus" : "enum:embeddingStatus"
     "documents" o|--|| "User" : "creator"
     "documents" o|--|o "User" : "updater"
     "documents" o|--|o "User" : "publisher"
+    "documents" o|--|o "User" : "reviewer"
     "documents" o{--}o "document_versions" : "versions"
     "documents" o{--}o "document_sections" : "sections"
+    "documents" o{--}o "document_chunks" : "chunks"
     "documents" o{--}o "document_files" : "files"
     "documents" o{--}o "document_metadata" : "metadata"
     "documents" o{--}o "document_relations" : "relationsFrom"
@@ -314,6 +336,7 @@ INTERNACIONAL INTERNACIONAL
     "documents" o{--}o "document_views" : "views"
     "document_versions" o|--|| "documents" : "document"
     "document_versions" o|--|| "User" : "creator"
+    "document_chunks" o|--|| "documents" : "document"
     "document_sections" o|--|| "documents" : "document"
     "document_sections" o|--|o "document_sections" : "parent"
     "document_sections" o{--}o "document_sections" : "children"

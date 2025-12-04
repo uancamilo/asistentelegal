@@ -8,7 +8,17 @@ import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './shared/filters/HttpException.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // Desactivar body parser por defecto para configurar límites personalizados
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: false,
+  });
+
+  // Aumentar límite de tamaño del body para documentos legales grandes
+  // La Constitución tiene ~800KB de texto
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const bodyParser = require('body-parser');
+  app.use(bodyParser.json({ limit: '10mb' }));
+  app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
   // Obtener ConfigService
   const configService = app.get(ConfigService);
@@ -81,8 +91,26 @@ async function bootstrap() {
         return callback(null, true);
       }
 
-      // Check if origin is in allowed list
-      if (allowedOrigins.includes(origin)) {
+      // Check if origin is in allowed list (exact match or wildcard pattern)
+      const isAllowed = allowedOrigins.some(allowedOrigin => {
+        // Exact match
+        if (allowedOrigin === origin) {
+          return true;
+        }
+
+        // Wildcard pattern matching (e.g., http://192.168.0.*:3000)
+        if (allowedOrigin.includes('*')) {
+          const pattern = allowedOrigin
+            .replace(/[.+?^${}()|[\]\\]/g, '\\$&') // Escape special regex chars
+            .replace(/\*/g, '.*'); // Replace * with .*
+          const regex = new RegExp(`^${pattern}$`);
+          return regex.test(origin);
+        }
+
+        return false;
+      });
+
+      if (isAllowed) {
         // In production, enforce HTTPS
         if (isProduction && !origin.startsWith('https://')) {
           console.warn(`🚨 CORS: Rejected non-HTTPS origin in production: ${origin}`);
@@ -149,7 +177,9 @@ async function bootstrap() {
   // Obtener puerto de configuración
   const port = configService.get<number>('app.port') || 3000;
 
-  await app.listen(port, '0.0.0.0');
+  // Aumentar timeout del servidor para operaciones largas (ingesta de documentos grandes)
+  const server = await app.listen(port, '0.0.0.0');
+  server.setTimeout(120000); // 2 minutos para documentos muy grandes
 
   console.log(`🚀 Application is running on: http://localhost:${port}/api`);
 }

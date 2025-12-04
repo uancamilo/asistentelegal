@@ -1,5 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Allow dev access from local network IPs (for HMR and development)
+  // NOTE: allowedDevOrigins doesn't support wildcards, so we generate IPs for common subnet
+  // This generates all IPs in the 192.168.0.x and 192.168.1.x ranges
+  allowedDevOrigins: process.env.NODE_ENV === 'development'
+    ? [
+        // Localhost
+        'localhost',
+        '127.0.0.1',
+        // Generate 192.168.0.0-255 (subnet 0)
+        ...Array.from({ length: 256 }, (_, i) => `192.168.0.${i}`),
+        // Generate 192.168.1.0-255 (subnet 1)
+        ...Array.from({ length: 256 }, (_, i) => `192.168.1.${i}`),
+        // Add more subnets if needed (uncomment the ones you use)
+        // ...Array.from({ length: 256 }, (_, i) => `192.168.2.${i}`),
+        // ...Array.from({ length: 256 }, (_, i) => `10.0.0.${i}`),
+      ]
+    : [],
+
   // Security Headers - Applied in all environments
   async headers() {
     return [
@@ -8,31 +26,31 @@ const nextConfig = {
         headers: [
           {
             key: 'X-DNS-Prefetch-Control',
-            value: 'on'
+            value: 'on',
           },
           {
             key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload'
+            value: 'max-age=63072000; includeSubDomains; preload',
           },
           {
             key: 'X-Frame-Options',
-            value: 'DENY'
+            value: 'DENY',
           },
           {
             key: 'X-Content-Type-Options',
-            value: 'nosniff'
+            value: 'nosniff',
           },
           {
             key: 'X-XSS-Protection',
-            value: '1; mode=block'
+            value: '1; mode=block',
           },
           {
             key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin'
+            value: 'strict-origin-when-cross-origin',
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()'
+            value: 'camera=(), microphone=(), geolocation=()',
           },
           {
             key: 'Content-Security-Policy',
@@ -46,6 +64,9 @@ const nextConfig = {
               // This is due to how Next.js injects styles and handles hydration
               const scriptSrc = "script-src 'self' 'unsafe-eval' 'unsafe-inline'";
               const styleSrc = "style-src 'self' 'unsafe-inline'";
+              const connectSrc = isDev
+                ? "connect-src 'self' ws: wss: " + baseApiUrl
+                : "connect-src 'self' " + baseApiUrl;
 
               return [
                 "default-src 'self'",
@@ -53,13 +74,13 @@ const nextConfig = {
                 styleSrc,
                 "img-src 'self' data: https:",
                 "font-src 'self' data:",
-                `connect-src 'self' ${baseApiUrl}`,
+                connectSrc,
                 "frame-ancestors 'none'",
                 "base-uri 'self'",
-                "form-action 'self'"
+                "form-action 'self'",
               ].join('; ');
-            })()
-          }
+            })(),
+          },
         ],
       },
     ];
@@ -80,6 +101,21 @@ const nextConfig = {
         destination: `${backendUrl}/api/:path*`,
       },
     ];
+  },
+
+  // Experimental features for handling long-running requests
+  experimental: {
+    // Increase proxy timeout for long operations like document ingestion
+    // Default is ~30 seconds, we extend to 2 minutes for PDF processing + OpenAI analysis
+    proxyTimeout: 120000, // 120 seconds = 2 minutes
+  },
+
+  // Server configuration for handling long-running API requests
+  serverExternalPackages: [],
+
+  // HTTP agent options for proxy requests
+  httpAgentOptions: {
+    keepAlive: true,
   },
 };
 

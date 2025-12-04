@@ -4,17 +4,18 @@ import {
   Post,
   Put,
   Patch,
-
+  Delete,
   Body,
   Param,
   Query,
   UseGuards,
   HttpCode,
   HttpStatus,
-
+  Inject,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../../../shared/guards/JwtAuth.guard';
+import { OptionalJwtAuthGuard } from '../../../../shared/guards/OptionalJwtAuth.guard';
 import { RolesGuard } from '../../../../shared/guards/Roles.guard';
 import { Roles } from '../../../../shared/decorators/Roles.decorator';
 import { CurrentUser } from '../../../../shared/decorators/CurrentUser.decorator';
@@ -27,6 +28,28 @@ import { GetDocumentUseCase } from '../../application/use-cases/GetDocument/GetD
 import { ListDocumentsUseCase } from '../../application/use-cases/ListDocuments/ListDocuments.usecase';
 import { UpdateDocumentUseCase } from '../../application/use-cases/UpdateDocument/UpdateDocument.usecase';
 import { PublishDocumentUseCase } from '../../application/use-cases/PublishDocument/PublishDocument.usecase';
+import {
+  ImportDocumentFromUrlUseCase,
+  ImportDocumentFromUrlDto,
+  ImportDocumentFromUrlResponseDto,
+} from '../../application/use-cases/ImportDocumentFromUrl';
+import {
+  IngestDocumentUseCase,
+  IngestDocumentDto,
+  IngestDocumentResponseDto,
+} from '../../application/use-cases/IngestDocument';
+import {
+  ReviewDocumentUseCase,
+  ReviewDocumentDto,
+  ReviewDocumentResponseDto,
+} from '../../application/use-cases/ReviewDocument';
+import {
+  SubmitDocumentForReviewUseCase,
+  SubmitForReviewResponseDto,
+} from '../../application/use-cases/SubmitDocumentForReview';
+import { SearchDocumentsUseCase } from '../../application/use-cases/SearchDocuments';
+import { DOCUMENT_REPOSITORY } from '../../domain/constants/tokens';
+import { IDocumentRepository } from '../../domain/repositories/Document.repository.interface';
 
 // DTOs
 import {
@@ -37,6 +60,10 @@ import {
   DocumentListResponseDto,
   DocumentStatisticsDto,
 } from '../../application/dtos/Document.dto';
+import {
+  SearchDocumentsRequestDto,
+  SearchDocumentsResponseDto,
+} from '../../application/dtos/SearchDocument.dto';
 
 /**
  * Document Controller
@@ -65,6 +92,13 @@ export class DocumentController {
     private readonly listDocumentsUseCase: ListDocumentsUseCase,
     private readonly updateDocumentUseCase: UpdateDocumentUseCase,
     private readonly publishDocumentUseCase: PublishDocumentUseCase,
+    private readonly importDocumentFromUrlUseCase: ImportDocumentFromUrlUseCase,
+    private readonly ingestDocumentUseCase: IngestDocumentUseCase,
+    private readonly reviewDocumentUseCase: ReviewDocumentUseCase,
+    private readonly submitDocumentForReviewUseCase: SubmitDocumentForReviewUseCase,
+    private readonly searchDocumentsUseCase: SearchDocumentsUseCase,
+    @Inject(DOCUMENT_REPOSITORY)
+    private readonly documentRepository: IDocumentRepository,
   ) {}
 
   /**
@@ -86,12 +120,80 @@ export class DocumentController {
   }
 
   /**
+   * POST /api/documents/import-url
+   * Import document from URL (PDF)
+   *
+   * Creates a document record and enqueues background processing:
+   * 1. Download PDF from URL
+   * 2. Extract text
+   * 3. Generate embeddings
+   *
+   * Authorization: EDITOR, ADMIN, SUPER_ADMIN
+   */
+  @Post('import-url')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.EDITOR, Role.ADMIN, Role.SUPER_ADMIN)
+  @HttpCode(HttpStatus.ACCEPTED)
+  async importFromUrl(
+    @Body() dto: ImportDocumentFromUrlDto,
+    @CurrentUser() user: UserEntity,
+  ): Promise<ImportDocumentFromUrlResponseDto> {
+    return this.importDocumentFromUrlUseCase.execute(dto, user.id);
+  }
+
+  /**
+   * POST /api/documents/ingest
+   * Automatic document ingestion with metadata detection
+   *
+   * This endpoint:
+   * 1. Downloads PDF from URL
+   * 2. Extracts text content
+   * 3. Uses LLM to detect document metadata automatically
+   * 4. Detects if PDF contains single or multiple legal documents
+   * 5. Returns structured data for form pre-filling
+   *
+   * NOTE: This does NOT create documents in the database.
+   * The response is used to pre-fill the creation form.
+   *
+   * Authorization: EDITOR, ADMIN, SUPER_ADMIN
+   */
+  @Post('ingest')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.EDITOR, Role.ADMIN, Role.SUPER_ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // Lower rate limit for expensive operation
+  async ingest(
+    @Body() dto: IngestDocumentDto,
+  ): Promise<IngestDocumentResponseDto> {
+    return this.ingestDocumentUseCase.execute(dto);
+  }
+
+  /**
+   * POST /api/documents/search
+   * Semantic search across published documents
+   *
+   * Performs vector similarity search on document chunks.
+   * Only searches within PUBLISHED documents.
+   *
+   * Authorization: Public (no authentication required)
+   */
+  @Post('search')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 20, ttl: 60000 } }) // Lower rate limit for search
+  async search(
+    @Body() dto: SearchDocumentsRequestDto,
+  ): Promise<SearchDocumentsResponseDto> {
+    return this.searchDocumentsUseCase.execute(dto);
+  }
+
+  /**
    * GET /api/documents
    * List documents with filtering and pagination
    *
    * Authorization: Public (only published), Authenticated (based on role)
    */
   @Get()
+  @UseGuards(OptionalJwtAuthGuard)
   async list(
     @Query() filters: FilterDocumentsDto,
     @CurrentUser() user?: UserEntity,
@@ -119,6 +221,7 @@ export class DocumentController {
    * Authorization: Public (published only), Authenticated (based on role)
    */
   @Get(':id')
+  @UseGuards(OptionalJwtAuthGuard)
   async getById(
     @Param('id') id: string,
     @CurrentUser() user?: UserEntity,
@@ -200,6 +303,63 @@ export class DocumentController {
   }
 
   /**
+   * PATCH /api/documents/:id/review
+   * Review document (approve or reject)
+   *
+   * Human review workflow for processed documents.
+   * Allows metadata modifications before approval.
+   *
+   * Authorization: EDITOR, ADMIN, SUPER_ADMIN
+   */
+  @Patch(':id/review')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.EDITOR, Role.ADMIN, Role.SUPER_ADMIN)
+  async review(
+    @Param('id') id: string,
+    @Body() dto: ReviewDocumentDto,
+    @CurrentUser() user: UserEntity,
+  ): Promise<ReviewDocumentResponseDto> {
+    return this.reviewDocumentUseCase.execute(id, dto, user.id);
+  }
+
+  /**
+   * PATCH /api/documents/:id/submit-review
+   * Submit document for review
+   *
+   * Transitions document from DRAFT to IN_REVIEW status.
+   * Only documents in DRAFT status can be submitted.
+   *
+   * Authorization: ACCOUNT_OWNER, MEMBER (document owners)
+   */
+  @Patch(':id/submit-review')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ACCOUNT_OWNER, Role.MEMBER)
+  async submitForReview(
+    @Param('id') id: string,
+    @CurrentUser() user: UserEntity,
+  ): Promise<SubmitForReviewResponseDto> {
+    return this.submitDocumentForReviewUseCase.execute(id, user.id);
+  }
+
+  /**
+   * DELETE /api/documents/:id
+   * Delete document (hard delete)
+   *
+   * Permanently removes the document and all associated data (chunks, files, etc.)
+   *
+   * Authorization: ADMIN, SUPER_ADMIN only
+   */
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async delete(
+    @Param('id') id: string,
+  ): Promise<void> {
+    await this.documentRepository.hardDelete(id);
+  }
+
+  /**
    * Map domain entity to response DTO
    * Apply access control for fullText field
    */
@@ -238,6 +398,15 @@ export class DocumentController {
       response.createdBy = document.createdBy;
       response.updatedBy = document.updatedBy;
       response.publishedBy = document.publishedBy;
+
+      // Include processing and review fields for editors
+      response.processingStatus = document.processingStatus;
+      response.embeddingStatus = document.embeddingStatus;
+      response.embeddingError = document.embeddingError;
+      response.sourceUrl = document.sourceUrl;
+      response.reviewedBy = document.reviewedBy;
+      response.reviewedAt = document.reviewedAt;
+      response.rejectionReason = document.rejectionReason;
     }
 
     return response;

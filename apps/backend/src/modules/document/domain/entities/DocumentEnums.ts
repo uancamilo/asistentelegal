@@ -44,8 +44,10 @@ export enum DocumentType {
  */
 export enum DocumentStatus {
   DRAFT = 'DRAFT',           // Being created/edited
+  IN_REVIEW = 'IN_REVIEW',   // Awaiting human validation
   PUBLISHED = 'PUBLISHED',   // Active and visible
   ARCHIVED = 'ARCHIVED',     // No longer active but kept for history
+  DEROGATED = 'DEROGATED',   // Legally repealed/invalidated
 }
 
 /**
@@ -79,6 +81,8 @@ export enum ProcessingStatus {
   PROCESSING = 'PROCESSING',   // Currently being processed
   COMPLETED = 'COMPLETED',     // Successfully processed
   FAILED = 'FAILED',           // Processing failed
+  SKIPPED = 'SKIPPED',         // Skipped (e.g., embedding skipped due to prior error)
+  MANUAL = 'MANUAL',           // Manual entry (no processing needed)
 }
 
 /**

@@ -63,6 +63,7 @@ model User {
   createdDocuments         Document[]         @relation("DocumentCreator")
   updatedDocuments         Document[]         @relation("DocumentUpdater")
   publishedDocuments       Document[]         @relation("DocumentPublisher")
+  reviewedDocuments        Document[]         @relation("DocumentReviewer")
   createdDocumentVersions  DocumentVersion[]  @relation("DocumentVersionCreator")
   uploadedDocumentFiles    DocumentFile[]     @relation("DocumentFileUploader")
   createdDocumentRelations DocumentRelation[] @relation("DocumentRelationCreator")
@@ -224,6 +225,7 @@ enum ProcessingStatus {
   PROCESSING // En proceso de extracción/OCR
   COMPLETED // Procesamiento completado
   FAILED // Procesamiento fallido
+  SKIPPED // Omitido (ej: embedding no generado por error previo)
   MANUAL // Ingreso manual (sin procesamiento)
 }
 
@@ -274,8 +276,22 @@ model Document {
   observations String? @db.Text // Observaciones o notas del editor
 
   // Metadatos para LLM/RAG
-  embedding Unsupported("vector(1536)")? // Vector de embeddings para búsqueda semántica (pgvector)
-  keywords  String[] // Palabras clave extraídas
+  keywords String[] // Palabras clave extraídas
+
+  // --- NEW FIELDS FOR URL INGESTION & PROCESSING ---
+  // Source tracking (for URL/PDF ingestion)
+  sourceUrl String? // URL origen del documento (si fue importado)
+
+  // Processing status tracking
+  processingStatus ProcessingStatus @default(MANUAL) // Estado del procesamiento de contenido
+  embeddingStatus  ProcessingStatus @default(PENDING) // Estado de generación de embeddings
+  embeddingError   String?          @db.Text // Mensaje de error si embedding falló
+
+  // Human review tracking
+  reviewedBy      String? // Usuario que revisó el documento
+  reviewedAt      DateTime? // Fecha de revisión
+  rejectionReason String?  @db.Text // Motivo de rechazo (si aplica)
+  // --- END NEW FIELDS ---
 
   // Auditoría y control
   createdBy   String // Usuario que creó el documento (EDITOR)
@@ -289,9 +305,11 @@ model Document {
   creator   User  @relation("DocumentCreator", fields: [createdBy], references: [id])
   updater   User? @relation("DocumentUpdater", fields: [updatedBy], references: [id])
   publisher User? @relation("DocumentPublisher", fields: [publishedBy], references: [id])
+  reviewer  User? @relation("DocumentReviewer", fields: [reviewedBy], references: [id])
 
   versions      DocumentVersion[] // Historial de versiones
   sections      DocumentSection[] // Secciones/artículos del documento
+  chunks        DocumentChunk[] // Chunks para embeddings granulares
   files         DocumentFile[] // Archivos asociados (PDFs, etc.)
   metadata      DocumentMetadata[] // Metadata adicional flexible
   relationsFrom DocumentRelation[] @relation("DocumentFrom") // Relaciones que origina
@@ -344,6 +362,35 @@ model DocumentVersion {
   @@index([createdAt])
   @@index([versionNumber])
   @@map("document_versions")
+}
+
+// ============================================
+// CHUNKS DE DOCUMENTOS (para embeddings granulares)
+// ============================================
+
+model DocumentChunk {
+  id         String @id @default(cuid())
+  documentId String // Documento al que pertenece
+
+  // Información del chunk
+  chunkIndex Int // Índice del chunk dentro del documento (0, 1, 2...)
+  content    String @db.Text // Contenido del chunk
+  articleRef String? // Referencia al artículo (ej: "articulo-49", "articulo-107-paragrafo-2")
+
+  // Embedding para búsqueda semántica
+  embedding Unsupported("vector(1536)")? // Vector de embeddings (text-embedding-3-small)
+
+  // Auditoría
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex]) // No puede haber chunks duplicados
+  @@index([documentId])
+  @@index([chunkIndex])
+  @@map("document_chunks")
 }
 
 // ============================================

@@ -19,12 +19,19 @@ export interface DocumentCreateData {
   status: DocumentStatus;
   summary: string | null;
   fullText: string | null;
-  embedding: number[];
   keywords: string[];
   createdBy: string;
   updatedBy: string | null;
   publishedBy: string | null;
   publishedAt: Date | null;
+  // Processing & review fields
+  processingStatus?: string;   // 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'MANUAL'
+  embeddingStatus?: string;    // Same values
+  embeddingError?: string | null;
+  sourceUrl?: string | null;
+  reviewedBy?: string | null;
+  reviewedAt?: Date | null;
+  rejectionReason?: string | null;
 }
 
 /**
@@ -49,7 +56,6 @@ export class DocumentEntity {
     public status: DocumentStatus,
     public summary: string | null,
     public fullText: string | null,
-    public embedding: number[],
     public keywords: string[],
     public createdBy: string,
     public updatedBy: string | null,
@@ -57,6 +63,14 @@ export class DocumentEntity {
     public publishedAt: Date | null,
     public createdAt: Date,
     public updatedAt: Date,
+    // Processing & review fields (with defaults for backward compatibility)
+    public processingStatus: string = 'MANUAL',
+    public embeddingStatus: string = 'PENDING',
+    public embeddingError: string | null = null,
+    public sourceUrl: string | null = null,
+    public reviewedBy: string | null = null,
+    public reviewedAt: Date | null = null,
+    public rejectionReason: string | null = null,
   ) {
     this.validate();
   }
@@ -74,6 +88,9 @@ export class DocumentEntity {
     fullText?: string;
     keywords?: string[];
     createdBy: string;
+    // NEW: Optional params for URL ingestion
+    sourceUrl?: string;
+    processingStatus?: string;
   }): DocumentCreateData {
     const hierarchyLevel = getHierarchyLevel(params.type);
 
@@ -88,12 +105,19 @@ export class DocumentEntity {
       status: DocumentStatus.DRAFT,
       summary: params.summary || null,
       fullText: params.fullText || null,
-      embedding: [],
       keywords: params.keywords || [],
       createdBy: params.createdBy,
       updatedBy: null,
       publishedBy: null,
       publishedAt: null,
+      // Processing fields with defaults
+      processingStatus: params.processingStatus || 'MANUAL',
+      embeddingStatus: 'PENDING',
+      embeddingError: null,
+      sourceUrl: params.sourceUrl || null,
+      reviewedBy: null,
+      reviewedAt: null,
+      rejectionReason: null,
     };
   }
 
@@ -156,6 +180,40 @@ export class DocumentEntity {
   }
 
   /**
+   * Business logic: Submit document for review
+   *
+   * Transitions document from DRAFT to IN_REVIEW status.
+   * Only documents in DRAFT status can be submitted for review.
+   * Does NOT modify publishedBy/publishedAt.
+   */
+  submitForReview(userId: string): void {
+    if (this.status !== DocumentStatus.DRAFT) {
+      throw new Error(
+        `Cannot submit document for review. Current status: ${this.status}. ` +
+        `Only documents in DRAFT status can be submitted for review.`
+      );
+    }
+
+    this.status = DocumentStatus.IN_REVIEW;
+    this.updatedBy = userId;
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Check if document can be submitted for review
+   */
+  canSubmitForReview(): boolean {
+    return this.status === DocumentStatus.DRAFT;
+  }
+
+  /**
+   * Check if document can be reviewed (approved/rejected)
+   */
+  canBeReviewed(): boolean {
+    return this.status === DocumentStatus.DRAFT || this.status === DocumentStatus.IN_REVIEW;
+  }
+
+  /**
    * Business logic: Update document content
    */
   updateContent(params: {
@@ -199,18 +257,6 @@ export class DocumentEntity {
     this.updatedAt = new Date();
 
     this.validate();
-  }
-
-  /**
-   * Business logic: Set embedding vector (after AI processing)
-   */
-  setEmbedding(embedding: number[]): void {
-    if (embedding.length === 0) {
-      throw new Error('Embedding vector cannot be empty');
-    }
-
-    this.embedding = embedding;
-    this.updatedAt = new Date();
   }
 
   /**

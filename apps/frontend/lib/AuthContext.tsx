@@ -35,8 +35,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setIsLoadingProfile(true)
       const profile = await getCompleteProfile()
       setCompleteProfile(profile)
-    } catch (error) {
-      console.warn('Could not fetch complete profile:', error)
+    } catch {
       setCompleteProfile(null)
     } finally {
       setIsLoadingProfile(false)

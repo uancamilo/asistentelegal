@@ -77,7 +77,7 @@ export const deleteDocument = async (id: string): Promise<void> => {
  * Publish a document (change status from DRAFT to PUBLISHED)
  */
 export const publishDocument = async (id: string): Promise<Document> => {
-  const response = await apiClient.post(`/documents/${id}/publish`);
+  const response = await apiClient.patch(`/documents/${id}/publish`, {});
   return response.data;
 };
 
@@ -85,9 +85,7 @@ export const publishDocument = async (id: string): Promise<Document> => {
  * Archive a document (change status to ARCHIVED)
  */
 export const archiveDocument = async (id: string): Promise<Document> => {
-  const response = await apiClient.patch(`/documents/${id}`, {
-    status: 'ARCHIVED',
-  });
+  const response = await apiClient.patch(`/documents/${id}/archive`, {});
   return response.data;
 };
 

@@ -6,15 +6,24 @@ import { PrismaModule } from '../../database/prisma.module';
 import { OpenAIModule } from '../../shared/openai/OpenAI.module';
 import { StorageModule } from '../../shared/storage/Storage.module';
 import { RateLimitingModule } from '../../shared/rate-limiting/rate-limiting.module';
+import { QueueModule } from '../../shared/queue/queue.module';
 
 // Repositories
 import { PrismaDocumentRepository } from './infrastructure/repositories/PrismaDocument.repository';
 import { PrismaDocumentFileRepository } from './infrastructure/repositories/PrismaDocumentFile.repository';
+import { PrismaDocumentChunkRepository } from './infrastructure/repositories/PrismaDocumentChunk.repository';
+
+// Services
+import { EmbeddingService } from './application/services/EmbeddingService';
+
+// Processors (BullMQ workers)
+import { DocumentProcessor } from './infrastructure/processors/document.processor';
 
 // Domain tokens
 import {
   DOCUMENT_REPOSITORY,
   DOCUMENT_FILE_REPOSITORY,
+  DOCUMENT_CHUNK_REPOSITORY,
 } from './domain/constants/tokens';
 
 // Use Cases
@@ -23,6 +32,11 @@ import { GetDocumentUseCase } from './application/use-cases/GetDocument/GetDocum
 import { ListDocumentsUseCase } from './application/use-cases/ListDocuments/ListDocuments.usecase';
 import { UpdateDocumentUseCase } from './application/use-cases/UpdateDocument/UpdateDocument.usecase';
 import { PublishDocumentUseCase } from './application/use-cases/PublishDocument/PublishDocument.usecase';
+import { ImportDocumentFromUrlUseCase } from './application/use-cases/ImportDocumentFromUrl';
+import { IngestDocumentUseCase } from './application/use-cases/IngestDocument';
+import { ReviewDocumentUseCase } from './application/use-cases/ReviewDocument';
+import { SubmitDocumentForReviewUseCase } from './application/use-cases/SubmitDocumentForReview';
+import { SearchDocumentsUseCase } from './application/use-cases/SearchDocuments';
 
 // Controllers
 import { DocumentController } from './interfaces/controllers/Document.controller';
@@ -57,6 +71,7 @@ import { DocumentController } from './interfaces/controllers/Document.controller
     OpenAIModule,
     StorageModule,
     RateLimitingModule,
+    QueueModule,
   ],
   controllers: [DocumentController],
   providers: [
@@ -69,12 +84,25 @@ import { DocumentController } from './interfaces/controllers/Document.controller
       provide: DOCUMENT_FILE_REPOSITORY,
       useClass: PrismaDocumentFileRepository,
     },
+    {
+      provide: DOCUMENT_CHUNK_REPOSITORY,
+      useClass: PrismaDocumentChunkRepository,
+    },
+    // Services
+    EmbeddingService,
     // Use Cases
     CreateDocumentUseCase,
     GetDocumentUseCase,
     ListDocumentsUseCase,
     UpdateDocumentUseCase,
     PublishDocumentUseCase,
+    ImportDocumentFromUrlUseCase,
+    IngestDocumentUseCase,
+    ReviewDocumentUseCase,
+    SubmitDocumentForReviewUseCase,
+    SearchDocumentsUseCase,
+    // Processors (BullMQ workers)
+    DocumentProcessor,
   ],
   exports: [
     DOCUMENT_REPOSITORY,

@@ -48,6 +48,11 @@ export class CreateDocumentDto {
   @IsArray()
   @IsString({ each: true })
   keywords?: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  sourceUrl?: string;
 }
 
 /**
@@ -179,6 +184,18 @@ export interface DocumentResponseDto {
   createdBy?: string;
   updatedBy?: string | null;
   publishedBy?: string | null;
+
+  // Processing and review fields (editors only)
+  processingStatus?: string;
+  embeddingStatus?: string;
+  embeddingError?: string | null;
+  sourceUrl?: string | null;
+  reviewedBy?: string | null;
+  reviewedAt?: Date | null;
+  rejectionReason?: string | null;
+
+  // Chunk information (for semantic search readiness)
+  chunksCount?: number;
 }
 
 /**

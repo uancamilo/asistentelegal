@@ -41,8 +41,7 @@ export const getCompleteProfile = async (): Promise<CompleteProfile> => {
   if (user.accountId && canAccessAccountEndpoint) {
     try {
       account = await getAccountById(user.accountId)
-    } catch (error) {
-      console.warn('Could not fetch account data:', error)
+    } catch {
       // Continue without account data
     }
   }
