@@ -143,18 +143,10 @@ export interface ReviewDocumentResponse {
 export async function importDocumentFromUrl(
   data: ImportDocumentFromUrlRequest
 ): Promise<ImportDocumentFromUrlResponse> {
-  console.log('[Ingestion] Starting import from URL:', data.url);
-
   const response = await apiClient.post<ImportDocumentFromUrlResponse>(
     '/documents/import-url',
     data
   );
-
-  console.log('[Ingestion] Import queued:', {
-    id: response.data.id,
-    processingStatus: response.data.processingStatus,
-  });
-
   return response.data;
 }
 
@@ -199,14 +191,6 @@ export async function pollDocumentStatus(
       try {
         attempts++;
         const doc = await getDocument(id);
-
-        console.log('[Ingestion] Poll status:', {
-          attempt: attempts,
-          processingStatus: doc.processingStatus,
-          embeddingStatus: doc.embeddingStatus,
-          status: doc.status,
-        });
-
         onStatusChange?.(doc);
 
         // Check if processing is complete
@@ -267,13 +251,6 @@ export async function reviewDocument(
     `/documents/${id}/review`,
     data
   );
-
-  console.log('[Ingestion] Document reviewed:', {
-    id,
-    approved: data.approved,
-    newStatus: response.data.status,
-  });
-
   return response.data;
 }
 
@@ -287,13 +264,6 @@ export async function publishDocument(id: string): Promise<DocumentResponse> {
   const response = await apiClient.patch<DocumentResponse>(
     `/documents/${id}/publish`
   );
-
-  console.log('[Ingestion] Document published:', {
-    id,
-    status: response.data.status,
-    publishedAt: response.data.publishedAt,
-  });
-
   return response.data;
 }
 
@@ -503,17 +473,9 @@ export interface IngestDocumentResponse {
 export async function ingestDocument(
   url: string
 ): Promise<IngestDocumentResponse> {
-  console.log('[Ingestion] Starting automatic ingestion from URL:', url);
-
   const response = await apiClient.post<IngestDocumentResponse>(
     '/documents/ingest',
     { url }
   );
-
-  console.log('[Ingestion] Ingestion complete:', {
-    documentsDetected: response.data.detectedDocuments.length,
-    processingTimeMs: response.data.processingTimeMs,
-  });
-
   return response.data;
 }

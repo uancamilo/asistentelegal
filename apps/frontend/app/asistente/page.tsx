@@ -62,8 +62,8 @@ export default function AssistantPage() {
           setMessages(parsed);
         }
       }
-    } catch (error) {
-      console.error('[Assistant] Failed to restore chat from localStorage:', error);
+    } catch {
+      // Ignore localStorage errors
     }
   }, []);
 
@@ -72,8 +72,8 @@ export default function AssistantPage() {
     if (isHydrated && messages.length > 0) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-      } catch (error) {
-        console.error('[Assistant] Failed to persist chat to localStorage:', error);
+      } catch {
+        // Ignore localStorage errors
       }
     }
   }, [messages, isHydrated]);

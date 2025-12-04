@@ -79,49 +79,20 @@ export async function askLegalAssistant(
 ): Promise<AssistantResponseWithMetrics> {
   const startTime = performance.now();
 
-  // Log telemetry to console
-  console.log('[Assistant] Request started', {
-    questionLength: question.length,
+  const response = await apiClient.post<AskAssistantResponse>('/assistant/ask', {
+    question,
     maxSources,
-    timestamp: new Date().toISOString(),
-  });
+  } as AskAssistantRequest);
 
-  try {
-    const response = await apiClient.post<AskAssistantResponse>('/assistant/ask', {
-      question,
-      maxSources,
-    } as AskAssistantRequest);
+  const endTime = performance.now();
+  const clientExecutionMs = Math.round(endTime - startTime);
+  const networkLatencyMs = Math.max(0, clientExecutionMs - response.data.executionTimeMs);
 
-    const endTime = performance.now();
-    const clientExecutionMs = Math.round(endTime - startTime);
-    const networkLatencyMs = Math.max(0, clientExecutionMs - response.data.executionTimeMs);
-
-    // Log telemetry to console
-    console.log('[Assistant] Request completed', {
-      clientExecutionMs,
-      serverExecutionMs: response.data.executionTimeMs,
-      networkLatencyMs,
-      sourcesCount: response.data.sources.length,
-      answerLength: response.data.answer.length,
-    });
-
-    return {
-      ...response.data,
-      clientExecutionMs,
-      networkLatencyMs,
-    };
-  } catch (error: unknown) {
-    const endTime = performance.now();
-    const clientExecutionMs = Math.round(endTime - startTime);
-
-    // Log error telemetry
-    console.error('[Assistant] Request failed', {
-      clientExecutionMs,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-
-    throw error;
-  }
+  return {
+    ...response.data,
+    clientExecutionMs,
+    networkLatencyMs,
+  };
 }
 
 /**
