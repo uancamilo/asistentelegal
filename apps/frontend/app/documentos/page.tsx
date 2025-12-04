@@ -1,34 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useAuth } from '@/lib/useAuth'
+import { Suspense } from 'react'
 import DocumentList from '@/components/documents/DocumentList'
 import { ComponentLoadingIndicator } from '@/components/ui/LoadingIndicator'
 
 export default function PublicDocumentsPage() {
-  const { user, isLoading: authLoading } = useAuth()
-  const [isInitialLoading, setIsInitialLoading] = useState(true)
-
-  useEffect(() => {
-    if (!authLoading) {
-      // Simular tiempo mínimo para mostrar el loader
-      const timer = setTimeout(() => {
-        setIsInitialLoading(false)
-      }, 500)
-      return () => clearTimeout(timer)
-    }
-  }, [authLoading])
-
-  if (authLoading || isInitialLoading) {
-    return (
-      <ComponentLoadingIndicator 
-        message="Cargando documentos legales" 
-        size="lg"
-        height="lg"
-      />
-    )
-  }
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -38,14 +14,16 @@ export default function PublicDocumentsPage() {
         </p>
       </div>
 
-      <DocumentList
-        showActions={true}
-        basePath="/documentos"
-        canCreate={false}
-        canEdit={false}
-        canPublish={false}
-        canArchive={false}
-      />
+      <Suspense fallback={<ComponentLoadingIndicator message="Cargando documentos" size="lg" height="lg" />}>
+        <DocumentList
+          showActions={true}
+          basePath="/documentos"
+          canCreate={false}
+          canEdit={false}
+          canPublish={false}
+          canArchive={false}
+        />
+      </Suspense>
     </div>
   )
 }

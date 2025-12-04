@@ -35,8 +35,6 @@
   }
   html, body {
     @apply bg-background text-foreground;
-    overflow: hidden;
-    height: 100%;
   }
   /* Prevent auto-zoom on input focus in iOS Safari (requires 16px minimum) */
   input, textarea, select {

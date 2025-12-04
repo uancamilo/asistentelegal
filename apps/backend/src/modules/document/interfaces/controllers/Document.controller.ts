@@ -116,7 +116,7 @@ export class DocumentController {
     @CurrentUser() user: UserEntity,
   ): Promise<DocumentResponseDto> {
     const document = await this.createDocumentUseCase.execute(dto, user.id);
-    return this.mapToResponseDto(document, user.role, true);
+    return this.mapToResponseDto(document, user.role);
   }
 
   /**
@@ -203,13 +203,10 @@ export class DocumentController {
       user?.role,
     );
 
-    // User has active account if they have an accountId (simplified)
-    const hasActiveAccount = !!user?.accountId;
-
     return {
       ...result,
       documents: result.documents.map((doc) =>
-        this.mapToResponseDto(doc, user?.role, hasActiveAccount),
+        this.mapToResponseDto(doc, user?.role),
       ),
     };
   }
@@ -226,15 +223,12 @@ export class DocumentController {
     @Param('id') id: string,
     @CurrentUser() user?: UserEntity,
   ): Promise<DocumentResponseDto> {
-    // User has active account if they have an accountId (simplified)
-    const hasActiveAccount = !!user?.accountId;
-
     const document = await this.getDocumentUseCase.execute(
       id,
       user?.role,
     );
 
-    return this.mapToResponseDto(document, user?.role, hasActiveAccount);
+    return this.mapToResponseDto(document, user?.role);
   }
 
   /**
@@ -252,7 +246,7 @@ export class DocumentController {
     @CurrentUser() user: UserEntity,
   ): Promise<DocumentResponseDto> {
     const document = await this.updateDocumentUseCase.execute(id, dto, user.id);
-    return this.mapToResponseDto(document, user.role, true);
+    return this.mapToResponseDto(document, user.role);
   }
 
   /**
@@ -269,7 +263,7 @@ export class DocumentController {
     @CurrentUser() user: UserEntity,
   ): Promise<DocumentResponseDto> {
     const document = await this.publishDocumentUseCase.execute(id, user.id);
-    return this.mapToResponseDto(document, user.role, true);
+    return this.mapToResponseDto(document, user.role);
   }
 
   /**
@@ -286,7 +280,7 @@ export class DocumentController {
     @CurrentUser() user: UserEntity,
   ): Promise<DocumentResponseDto> {
     const document = await this.publishDocumentUseCase.archive(id, user.id);
-    return this.mapToResponseDto(document, user.role, true);
+    return this.mapToResponseDto(document, user.role);
   }
 
   /**
@@ -366,10 +360,8 @@ export class DocumentController {
   private mapToResponseDto(
     document: any,
     userRole?: Role,
-    hasActiveAccount?: boolean,
   ): DocumentResponseDto {
     const isEditor = userRole && [Role.EDITOR, Role.ADMIN, Role.SUPER_ADMIN, Role.ACCOUNT_OWNER].includes(userRole);
-    const canAccessFullText = hasActiveAccount || isEditor;
 
     const response: DocumentResponseDto = {
       id: document.id,
@@ -386,12 +378,8 @@ export class DocumentController {
       publishedAt: document.publishedAt,
       createdAt: document.createdAt,
       updatedAt: document.updatedAt,
+      fullText: document.fullText,
     };
-
-    // Include fullText only if user has access
-    if (canAccessFullText) {
-      response.fullText = document.fullText;
-    }
 
     // Include admin fields for editors
     if (isEditor) {
