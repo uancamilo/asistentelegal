@@ -38,6 +38,10 @@
     overflow: hidden;
     height: 100%;
   }
+  /* Prevent auto-zoom on input focus in iOS Safari (requires 16px minimum) */
+  input, textarea, select {
+    font-size: 16px;
+  }
 }
 
 @layer utilities {
