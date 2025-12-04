@@ -12,10 +12,6 @@ interface ChatMessageProps {
   isError?: boolean;
 }
 
-/**
- * Simple markdown-like rendering for safe text display
- * Handles: **bold**, *italic*, `code`, newlines, and lists
- */
 function renderMarkdown(text: string): React.ReactNode[] {
   const lines = text.split('\n');
   const elements: React.ReactNode[] = [];
@@ -23,12 +19,10 @@ function renderMarkdown(text: string): React.ReactNode[] {
   let listType: 'ul' | 'ol' | null = null;
 
   const processInlineFormatting = (line: string, key: string): React.ReactNode => {
-    // Process inline formatting
     const parts: React.ReactNode[] = [];
     let remaining = line;
     let partIndex = 0;
 
-    // Process Markdown links [text](url) - MUST be processed first before other formatting
     while (remaining.includes('[') && remaining.includes('](')) {
       const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/;
       const match = remaining.match(linkRegex);
@@ -48,7 +42,7 @@ function renderMarkdown(text: string): React.ReactNode[] {
           href={linkUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
+          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline break-words"
         >
           {linkText}
         </a>
@@ -57,7 +51,6 @@ function renderMarkdown(text: string): React.ReactNode[] {
       remaining = remaining.substring((match.index || 0) + match[0].length);
     }
 
-    // Process bold (**text**)
     while (remaining.includes('**')) {
       const startIdx = remaining.indexOf('**');
       const endIdx = remaining.indexOf('**', startIdx + 2);
@@ -74,7 +67,6 @@ function renderMarkdown(text: string): React.ReactNode[] {
       remaining = remaining.substring(endIdx + 2);
     }
 
-    // Process italic (*text*) - be careful not to match inside links already processed
     if (remaining.includes('*')) {
       const processed: React.ReactNode[] = [];
       const segments = remaining.split(/\*([^*]+)\*/g);
@@ -95,14 +87,13 @@ function renderMarkdown(text: string): React.ReactNode[] {
       }
     }
 
-    // Process inline code (`code`)
     if (remaining.includes('`')) {
       const processed: React.ReactNode[] = [];
       const segments = remaining.split(/`([^`]+)`/g);
       segments.forEach((segment, idx) => {
         if (idx % 2 === 1) {
           processed.push(
-            <code key={`${key}-c-${partIndex++}`} className="bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-sm font-mono">
+            <code key={`${key}-c-${partIndex++}`} className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-xs sm:text-sm font-mono break-all">
               {segment}
             </code>
           );
@@ -128,9 +119,9 @@ function renderMarkdown(text: string): React.ReactNode[] {
       const ListComponent = listType === 'ol' ? 'ol' : 'ul';
       const listClass = listType === 'ol' ? 'list-decimal' : 'list-disc';
       elements.push(
-        <ListComponent key={`list-${elements.length}`} className={`${listClass} ml-5 my-2 space-y-1`}>
+        <ListComponent key={`list-${elements.length}`} className={`${listClass} ml-4 sm:ml-5 my-2 space-y-1`}>
           {listItems.map((item, idx) => (
-            <li key={idx} className="text-gray-700 dark:text-gray-300">
+            <li key={idx} className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">
               {processInlineFormatting(item, `li-${elements.length}-${idx}`)}
             </li>
           ))}
@@ -144,7 +135,6 @@ function renderMarkdown(text: string): React.ReactNode[] {
   lines.forEach((line, lineIndex) => {
     const trimmedLine = line.trim();
 
-    // Check for unordered list
     if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('• ')) {
       if (listType !== 'ul') {
         flushList();
@@ -154,7 +144,6 @@ function renderMarkdown(text: string): React.ReactNode[] {
       return;
     }
 
-    // Check for ordered list
     const orderedMatch = trimmedLine.match(/^(\d+)\.\s+(.+)$/);
     if (orderedMatch) {
       if (listType !== 'ol') {
@@ -165,19 +154,20 @@ function renderMarkdown(text: string): React.ReactNode[] {
       return;
     }
 
-    // Flush any pending list
-    flushList();
-
-    // Empty line = paragraph break
+    // Empty line: only add <br> if we're NOT inside a list
     if (trimmedLine === '') {
-      elements.push(<br key={`br-${lineIndex}`} />);
+      if (!listType) {
+        elements.push(<br key={`br-${lineIndex}`} />);
+      }
       return;
     }
 
-    // Check for headers
+    // Non-list, non-empty content: flush the list first
+    flushList();
+
     if (trimmedLine.startsWith('### ')) {
       elements.push(
-        <h4 key={`h4-${lineIndex}`} className="font-semibold text-gray-900 dark:text-gray-100 mt-3 mb-1">
+        <h4 key={`h4-${lineIndex}`} className="font-semibold text-gray-900 dark:text-gray-100 mt-2 sm:mt-3 mb-1 text-sm sm:text-base">
           {processInlineFormatting(trimmedLine.substring(4), `h4-${lineIndex}`)}
         </h4>
       );
@@ -185,36 +175,25 @@ function renderMarkdown(text: string): React.ReactNode[] {
     }
     if (trimmedLine.startsWith('## ')) {
       elements.push(
-        <h3 key={`h3-${lineIndex}`} className="font-bold text-gray-900 dark:text-gray-100 mt-4 mb-2">
+        <h3 key={`h3-${lineIndex}`} className="font-bold text-gray-900 dark:text-gray-100 mt-3 sm:mt-4 mb-1 sm:mb-2 text-base sm:text-lg">
           {processInlineFormatting(trimmedLine.substring(3), `h3-${lineIndex}`)}
         </h3>
       );
       return;
     }
 
-    // Regular paragraph
     elements.push(
-      <p key={`p-${lineIndex}`} className="mb-2 last:mb-0">
+      <p key={`p-${lineIndex}`} className="mb-1.5 sm:mb-2 last:mb-0">
         {processInlineFormatting(line, `p-${lineIndex}`)}
       </p>
     );
   });
 
-  // Flush any remaining list
   flushList();
 
   return elements;
 }
 
-/**
- * ChatMessage - Displays a single chat message (user or assistant)
- *
- * Features:
- * - Different styling for user vs assistant messages
- * - Safe Markdown rendering
- * - Source list for assistant responses
- * - Error state styling
- */
 export function ChatMessage({
   role,
   message,
@@ -226,18 +205,16 @@ export function ChatMessage({
 
   const renderedMessage = useMemo(() => {
     if (isUser) {
-      // User messages are plain text
-      return <p className="whitespace-pre-wrap">{message}</p>;
+      return <p className="whitespace-pre-wrap break-words">{message}</p>;
     }
-    // Assistant messages get markdown processing
-    return <div className="prose-sm dark:prose-invert max-w-none">{renderMarkdown(message)}</div>;
+    return <div className="prose-sm dark:prose-invert max-w-none break-words">{renderMarkdown(message)}</div>;
   }, [message, isUser]);
 
   return (
-    <div className={`flex items-start gap-3 mb-4 ${isUser ? 'flex-row-reverse' : ''}`}>
-      {/* Avatar */}
+    <div className={`flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4 ${isUser ? 'flex-row-reverse' : ''}`}>
+      {/* Avatar - Smaller on mobile */}
       <div
-        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+        className={`flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${
           isUser
             ? 'bg-gray-600 dark:bg-gray-500'
             : isError
@@ -246,7 +223,7 @@ export function ChatMessage({
         }`}
       >
         {isUser ? (
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -255,7 +232,7 @@ export function ChatMessage({
             />
           </svg>
         ) : (
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -266,19 +243,19 @@ export function ChatMessage({
         )}
       </div>
 
-      {/* Message content */}
+      {/* Message content - Responsive width */}
       <div
-        className={`flex-1 max-w-[85%] ${
+        className={`flex-1 max-w-[90%] sm:max-w-[85%] ${
           isUser
             ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm'
             : isError
             ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl rounded-tl-sm'
             : 'bg-gray-100 dark:bg-gray-800 rounded-2xl rounded-tl-sm'
-        } px-4 py-3`}
+        } px-3 py-2 sm:px-4 sm:py-3`}
       >
         {/* Message text */}
         <div
-          className={`text-sm leading-relaxed ${
+          className={`text-sm sm:text-base leading-relaxed ${
             isUser
               ? 'text-white'
               : isError
@@ -289,13 +266,13 @@ export function ChatMessage({
           {renderedMessage}
         </div>
 
-        {/* Sources (only for assistant messages) */}
+        {/* Sources */}
         {!isUser && sources && sources.length > 0 && <SourceList sources={sources} />}
 
         {/* Timestamp */}
         {timestamp && (
           <div
-            className={`mt-2 text-xs ${
+            className={`mt-1.5 sm:mt-2 text-[10px] sm:text-xs ${
               isUser ? 'text-blue-200' : 'text-gray-400 dark:text-gray-500'
             }`}
           >

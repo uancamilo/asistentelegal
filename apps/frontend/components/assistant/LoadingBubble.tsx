@@ -1,17 +1,12 @@
 'use client';
 
-/**
- * LoadingBubble - Animated loading indicator for chat messages
- *
- * Displays a minimalist "..." animation while waiting for the assistant's response.
- */
 export function LoadingBubble() {
   return (
-    <div className="flex items-start gap-3 mb-4">
-      {/* Avatar */}
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+    <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
+      {/* Avatar - Smaller on mobile */}
+      <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-600 flex items-center justify-center">
         <svg
-          className="w-5 h-5 text-white"
+          className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -26,11 +21,11 @@ export function LoadingBubble() {
       </div>
 
       {/* Loading bubble */}
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%]">
+      <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl rounded-tl-sm px-3 py-2 sm:px-4 sm:py-3 max-w-[80%]">
         <div className="flex items-center gap-1">
-          <span className="loading-dot w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-          <span className="loading-dot w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-          <span className="loading-dot w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          <span className="loading-dot w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <span className="loading-dot w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+          <span className="loading-dot w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
         </div>
       </div>
 
