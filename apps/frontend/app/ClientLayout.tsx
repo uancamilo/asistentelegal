@@ -1,6 +1,7 @@
 'use client'
 
 import { AuthProvider } from '../lib/AuthContext'
+import { HotjarScript } from '../components/HotjarScript'
 
 interface ClientLayoutProps {
   children: React.ReactNode
@@ -13,5 +14,10 @@ interface ClientLayoutProps {
  * que debe permanecer server-side en Next.js 15+
  */
 export function ClientLayout({ children }: ClientLayoutProps) {
-  return <AuthProvider>{children}</AuthProvider>
+  return (
+    <AuthProvider>
+      <HotjarScript />
+      {children}
+    </AuthProvider>
+  )
 }

@@ -62,11 +62,16 @@ const nextConfig = {
 
               // Next.js requires unsafe-inline for styles and unsafe-eval for scripts in production
               // This is due to how Next.js injects styles and handles hydration
-              const scriptSrc = "script-src 'self' 'unsafe-eval' 'unsafe-inline'";
+              // Hotjar requires its domain in script-src to load external scripts
+              const scriptSrc = isDev
+                ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
+                : "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://static.hotjar.com https://*.hotjar.com";
               const styleSrc = "style-src 'self' 'unsafe-inline'";
+              // Hotjar domains for analytics (only in production)
+              const hotjarDomains = 'https://static.hotjar.com https://*.hotjar.com wss://*.hotjar.com';
               const connectSrc = isDev
                 ? "connect-src 'self' ws: wss: " + baseApiUrl
-                : "connect-src 'self' " + baseApiUrl;
+                : "connect-src 'self' " + baseApiUrl + " " + hotjarDomains;
 
               return [
                 "default-src 'self'",
