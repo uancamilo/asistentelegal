@@ -62,23 +62,28 @@ const nextConfig = {
 
               // Next.js requires unsafe-inline for styles and unsafe-eval for scripts in production
               // This is due to how Next.js injects styles and handles hydration
-              // Hotjar requires its domain in script-src to load external scripts
+              // Hotjar domains for full functionality
+              const hotjarScripts = 'https://static.hotjar.com https://*.hotjar.com https://script.hotjar.com';
+              const hotjarConnect = 'https://*.hotjar.com https://*.hotjar.io wss://*.hotjar.com';
+              const hotjarFonts = 'https://script.hotjar.com';
+
               const scriptSrc = isDev
                 ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
-                : "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://static.hotjar.com https://*.hotjar.com https://vercel.live";
+                : `script-src 'self' 'unsafe-eval' 'unsafe-inline' ${hotjarScripts} https://vercel.live`;
               const styleSrc = "style-src 'self' 'unsafe-inline'";
-              // Hotjar domains for analytics (only in production)
-              const hotjarDomains = 'https://static.hotjar.com https://*.hotjar.com wss://*.hotjar.com';
               const connectSrc = isDev
                 ? "connect-src 'self' ws: wss: " + baseApiUrl
-                : "connect-src 'self' " + baseApiUrl + " " + hotjarDomains;
+                : `connect-src 'self' ${baseApiUrl} ${hotjarConnect}`;
+              const fontSrc = isDev
+                ? "font-src 'self' data:"
+                : `font-src 'self' data: ${hotjarFonts}`;
 
               return [
                 "default-src 'self'",
                 scriptSrc,
                 styleSrc,
                 "img-src 'self' data: https:",
-                "font-src 'self' data:",
+                fontSrc,
                 connectSrc,
                 "frame-ancestors 'none'",
                 "base-uri 'self'",
