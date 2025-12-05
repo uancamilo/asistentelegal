@@ -65,7 +65,7 @@ const nextConfig = {
               // Hotjar requires its domain in script-src to load external scripts
               const scriptSrc = isDev
                 ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
-                : "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://static.hotjar.com https://*.hotjar.com";
+                : "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://static.hotjar.com https://*.hotjar.com https://vercel.live";
               const styleSrc = "style-src 'self' 'unsafe-inline'";
               // Hotjar domains for analytics (only in production)
               const hotjarDomains = 'https://static.hotjar.com https://*.hotjar.com wss://*.hotjar.com';
